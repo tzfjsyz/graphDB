@@ -2,7 +2,7 @@
 neo4jServer:
   url:
     #bolt://10.15.97.89:7687
-    #bolt://10.10.15.27:7688
+    bolt://10.10.15.27:7687
     #bolt://10.17.205.190:7687
     #bolt://127.0.0.1:7678
     #bolt://10.10.17.10:7687
@@ -38,13 +38,13 @@ indexInfo:
     ITCode2
 
 #设置查询neo4j server的超时时间
-lookupTimeout: 
-  150000                                         #超时设置15s
+# lookupTimeout: 
+#   150000                                         #超时设置15s
   
 #设置加入预热的path条件
 warmUp_Condition:
   queryNeo4jCost:
-    500                                        #查询neo4j所需时间
+    2000                                        #查询neo4j所需时间
   queryNeo4jRecords:
     200                                        #查询neo4j返回记录数
 
@@ -63,10 +63,15 @@ warmUp_RedisInfo:
 NodeCache:
   stdTTL: 
     21600000
-  checkperiod: 
-    600
-  useClones: 
-    false
+  # checkperiod: 
+  #   600
+  # useClones: 
+  #   false
+  redisUrl:                                     #存放paths cache
+    redis://:finchina@10.15.97.135:6679/10      #注意：需指定一个独立使用的db, 清空缓存时需要清空db中的所有内容
+  autoFlushCache:                               #程序重启是否清空缓存
+    #'true'
+    'fasle'
 
 #redis存储数据的keyName
 redisKeyName:
@@ -97,7 +102,7 @@ pathDepth:
 #定时触发主动查询需要预热的path数据
 schedule:
   hour:
-    10
+    12
   minute:
     0       
 
