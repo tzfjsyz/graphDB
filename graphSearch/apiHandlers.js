@@ -60,18 +60,57 @@ function errorResp(err, msg) {
     return { ok: err.code, error: msg || err.msg };
 }
 
+// log4js.configure({
+//     appenders: {
+//         'out': {
+//             type: 'file',         //文件输出
+//             filename: 'logs/queryDataInfo.log',
+//             maxLogSize: config.logInfo.maxLogSize
+//         }
+//     },
+//     categories: { default: { appenders: ['out'], level: 'info' } }
+// });
+// const logger = log4js.getLogger();
 log4js.configure({
+    // appenders: {
+    //     'out': {
+    //         type: 'file',         //文件输出
+    //         filename: 'logs/queryDataInfo.log',
+    //         maxLogSize: config.logInfo.maxLogSize
+    //     }
+    // },
+    // categories: { default: { appenders: ['out'], level: 'info' } }
     appenders: {
-        'out': {
-            type: 'file',         //文件输出
-            filename: 'logs/queryDataInfo.log',
+        console: {
+            type: 'console'
+        },
+        log: {
+            type: "dateFile",
+            filename: "./logs/log4js_log-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
             maxLogSize: config.logInfo.maxLogSize
-        }
+        },
+        error: {
+            type: "dateFile",
+            filename: "./logs/log4js_err-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
+            maxLogSize: config.logInfo.maxLogSize
+        },
+        errorFilter: {
+            type: "logLevelFilter",
+            appender: "error",
+            level: "error"
+        },
     },
-    categories: { default: { appenders: ['out'], level: 'info' } }
+    categories: {
+        default: { appenders: ['console', 'log', 'errorFilter'], level: 'info' }
+    },
+    pm2: true,
+    pm2InstanceVar: 'INSTANCE_ID'
 });
-
-const logger = log4js.getLogger();
+const logger = log4js.getLogger('graphPath_search_terminal');
 
 //定时主动预热paths
 var rule = new schedule.RecurrenceRule();
@@ -79,7 +118,7 @@ rule.dayOfWeek = [0, new schedule.Range(1, 6)];
 rule.hour = config.schedule.hour;
 rule.minute = config.schedule.minute;
 console.log('定时主动预热paths时间: ' + rule.hour + '时 ' + rule.minute + '分');
-logger.info('定时主动预热paths时间: ' + rule.hour + '时 ' + rule.minute + '分');
+// logger.info('定时主动预热paths时间: ' + rule.hour + '时 ' + rule.minute + '分');
 schedule.scheduleJob(rule, function () {
     redlock.lock(lockResource, lockTTL).then(async function (lock) {
         timingWarmUpPaths('true');
@@ -676,6 +715,18 @@ let apiHandlers = {
             }
 
         } catch (err) {
+            return reply.response(err);
+        }
+    },
+
+    //清空缓存
+    deleteCacheData: async function (request, reply) {
+        try {
+            cacheHandlers.flushCache();
+            return reply.response({ ok: 1, message: 'flush the cache succeess!' });
+        } catch (err) {
+            console.error(err);
+            logger.error(err);
             return reply.response(err);
         }
     },

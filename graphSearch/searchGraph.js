@@ -12,14 +12,14 @@ const log4js = require('log4js');
 // const Promise = require('bluebird');
 const neo4j = require('neo4j-driver').v1;
 const driver = neo4j.driver(`${config.neo4jServer.url}`, neo4j.auth.basic(`${config.neo4jServer.user}`, `${config.neo4jServer.password}`),
-    // {
-    //     maxConnectionLifetime: 30 * 60 * 60,
-    //     maxConnectionPoolSize: 1000,
-    //     connectionAcquisitionTimeout: 2 * 60
-    // }
+    {
+        maxConnectionLifetime: 30 * 60 * 60,
+        maxConnectionPoolSize: 1000,
+        connectionAcquisitionTimeout: 2 * 60
+    }
 );
-const lookupTimeout = config.lookupTimeout;
-console.log('lookupTimeout: ' + lookupTimeout + 'ms');
+// const lookupTimeout = config.lookupTimeout;
+// console.log('lookupTimeout: ' + lookupTimeout + 'ms');
 
 const errorCode = {
     ARG_ERROR: {
@@ -44,18 +44,58 @@ function errorResp(err, msg) {
     return { ok: err.code, error: msg || err.msg };
 }
 
-log4js.configure({
-    appenders: {
-        'out': {
-            type: 'file',         //文件输出
-            filename: 'logs/queryDataInfo.log',
-            maxLogSize: config.logInfo.maxLogSize
-        }
-    },
-    categories: { default: { appenders: ['out'], level: 'info' } }
-});
+// log4js.configure({
+//     appenders: {
+//         'out': {
+//             type: 'file',         //文件输出
+//             filename: 'logs/queryDataInfo.log',
+//             maxLogSize: config.logInfo.maxLogSize
+//         }
+//     },
+//     categories: { default: { appenders: ['out'], level: 'info' } }
+// });
+// const logger = log4js.getLogger();
 
-const logger = log4js.getLogger();
+log4js.configure({
+    // appenders: {
+    //     'out': {
+    //         type: 'file',         //文件输出
+    //         filename: 'logs/queryDataInfo.log',
+    //         maxLogSize: config.logInfo.maxLogSize
+    //     }
+    // },
+    // categories: { default: { appenders: ['out'], level: 'info' } }
+    appenders: {
+        console: {
+            type: 'console'
+        },
+        log: {
+            type: "dateFile",
+            filename: "./logs/log4js_log-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
+            maxLogSize: config.logInfo.maxLogSize
+        },
+        error: {
+            type: "dateFile",
+            filename: "./logs/log4js_err-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
+            maxLogSize: config.logInfo.maxLogSize
+        },
+        errorFilter: {
+            type: "logLevelFilter",
+            appender: "error",
+            level: "error"
+        },
+    },
+    categories: {
+        default: { appenders: ['console', 'log', 'errorFilter'], level: 'info' }
+    },
+    pm2: true,
+    pm2InstanceVar: 'INSTANCE_ID'
+});
+const logger = log4js.getLogger('graphPath_search_terminal');
 
 //数组元素去重
 function unique(arr) {
@@ -1523,6 +1563,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, IVDepth, j, pathType].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, IVDepth, lowWeight, highWeight, pathType].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -1575,7 +1616,7 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let previousValue = await cacheHandlers.getCache(investPathQuery);
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             now = Date.now();
                             // resultPromise = await session.run(investPathQuery);
@@ -1586,7 +1627,7 @@ let searchGraph = {
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestPathQueryCost: " + investPathQueryCost + 'ms');
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(from, to, resultPromise, j);
-                                cacheHandlers.setCache(investPathQuery, result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -1604,11 +1645,12 @@ let searchGraph = {
                                     nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'InvestPath', names: [], codes: [] } },
                                     nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                                 };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -1643,6 +1685,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, IVBDepth, j, pathType].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, IVBDepth, lowWeight, highWeight, pathType].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -1703,7 +1746,7 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let previousValue = await cacheHandlers.getCache(investedByPathQuery);
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             now = Date.now();
                             // resultPromise = await session.run(investedByPathQuery);
@@ -1714,7 +1757,7 @@ let searchGraph = {
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestedByPathQueryCost: " + investedByPathQueryCost + 'ms');
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(from, to, resultPromise, j);
-                                cacheHandlers.setCache(investedByPathQuery, result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -1732,11 +1775,12 @@ let searchGraph = {
                                     nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'InvestedByPath', names: [], codes: [] } },
                                     nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                                 };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -1768,6 +1812,7 @@ let searchGraph = {
 
             try {
                 let j = 2;                                                             //记录每种路径查询方式索引号,ShortestPathQuery索引为2
+                let cacheKey = [j, from, to, lowWeight, highWeight, pathType].join('-');
                 // let nodeIdOne = await findNodeId(from);
                 // let nodeIdTwo = await findNodeId(to);
                 // let shortestPathQuery = `start from=node(${nodeIdOne}), to=node(${nodeIdTwo})   match p= allShortestPaths((from)-[r:invests*]-(to)) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
@@ -1792,7 +1837,7 @@ let searchGraph = {
                 else if (from != null && to != null) {
                     let now = 0;
                     //缓存
-                    let previousValue = await cacheHandlers.getCache(shortestPathQuery);
+                    let previousValue = await cacheHandlers.getCache(cacheKey);
                     if (!previousValue) {
                         now = Date.now();
                         // resultPromise = await session.run(shortestPathQuery);
@@ -1803,18 +1848,19 @@ let searchGraph = {
                         console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", ShortestPathQueryCost: " + shortestPathQueryCost + 'ms');
                         if (resultPromise.records.length > 0) {
                             let result = await handlerNeo4jResult(from, to, resultPromise, j);
-                            cacheHandlers.setCache(shortestPathQuery, result);
+                            cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                             return resolve(result);
                         } else if (resultPromise.records.length == 0) {
                             let nodeResults = {
                                 nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'ShortestPath', names: [], codes: [] } },
                                 nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                             };
+                            cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                             return resolve(nodeResults);
                         }
                     }
                     else if (previousValue) {
-                        return resolve(previousValue);
+                        return resolve(JSON.parse(previousValue));
                     }
                 }
             } catch (err) {
@@ -1841,6 +1887,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, FUDepth, j, pathType].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, FUDepth, lowWeight, highWeight, pathType].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -1867,7 +1914,7 @@ let searchGraph = {
                     else if (from != null && to != null) {
                         let now = 0;
                         //缓存
-                        let previousValue = await cacheHandlers.getCache(fullPathQuery);
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             now = Date.now();
                             // resultPromise = await session.run(fullPathQuery);
@@ -1879,7 +1926,7 @@ let searchGraph = {
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(from, to, resultPromise, j);
 
-                                cacheHandlers.setCache(fullPathQuery, result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -1896,11 +1943,12 @@ let searchGraph = {
                                     nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'FullPath', names: [], codes: [] } },
                                     nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                                 };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -1935,6 +1983,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, CIVDepth, j, pathType].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, CIVDepth, lowWeight, highWeight, pathType].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -1988,9 +2037,8 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let key = [j, commonInvestPathQuery].join('-');
-                        //以commonInvestedByPathQuery为key做缓存
-                        let previousValue = await cacheHandlers.getCache(key);
+                        // let key = [j, commonInvestPathQuery].join('-');
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             let commonInvestPathQueryCost = 0;
                             now = Date.now();
@@ -2003,7 +2051,7 @@ let searchGraph = {
                             if (resultPromise.records.length > 0) {
                                 logger.info(`from: ${from} to: ${to}` + " CommonInvestPathQueryCost: " + commonInvestPathQueryCost + 'ms');
                                 let result = await handlerNeo4jResult(from, to, resultPromise, j);
-                                cacheHandlers.setCache(key, result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -2020,11 +2068,12 @@ let searchGraph = {
                                     nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'CommonInvestPath', names: [], codes: [] } },
                                     nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                                 };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -2059,6 +2108,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, CIVBDepth, j, isExtra, pathType].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, CIVBDepth, lowWeight, highWeight, isExtra, pathType].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -2122,9 +2172,8 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let key = [j, commonInvestedByPathQuery].join('-');
-                        //以commonInvestedByPathQuery为key做缓存
-                        let previousValue = await cacheHandlers.getCache(key);
+                        // let key = [j, commonInvestedByPathQuery].join('-');
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             let commonInvestedByPathQueryCost = 0;
                             now = Date.now();
@@ -2136,7 +2185,7 @@ let searchGraph = {
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", CommonInvestedByPathQueryCost: " + commonInvestedByPathQueryCost + 'ms');
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(from, to, resultPromise, j);
-                                cacheHandlers.setCache(key, result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -2153,11 +2202,12 @@ let searchGraph = {
                                     nodeResultOne: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'CommonInvestedByPath', names: [], codes: [] } },
                                     nodeResultTwo: { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_10`, typeName: 'guarantees', names: [], codes: [] } },
                                 };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -2400,6 +2450,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, GTDepth, j].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, GTDepth, 'GT'].join('-');
                 if (!warmUpValue) {
                     // let nodeIdOne = await findNodeId(from);
                     // let nodeIdTwo = await findNodeId(to);
@@ -2437,7 +2488,7 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let previousValue = await cacheHandlers.getCache(guaranteePathQuery + '-GT');
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             now = Date.now();
                             // resultPromise = await session.run(guaranteePathQuery);
@@ -2448,7 +2499,7 @@ let searchGraph = {
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteePathQueryCost: " + guaranteePathQueryCost + 'ms');
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(resultPromise, j);
-                                cacheHandlers.setCache(guaranteePathQuery + '-GT', result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -2463,11 +2514,12 @@ let searchGraph = {
                             }
                             else if (resultPromise.records.length == 0) {
                                 let nodeResults = { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'GuaranteePath', names: [], codes: [] } };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
@@ -2502,6 +2554,7 @@ let searchGraph = {
                 //先从redis中预热的数据中查询是否存在预热值
                 let warmUpKey = [from, to, GTBDepth, j].join('-');
                 let warmUpValue = await cacheHandlers.getWarmUpPathsFromRedis(warmUpKey);
+                let cacheKey = [j, from, to, GTBDepth, 'GTB'].join('-');
                 if (!warmUpValue) {
                     if (from == null || to == null) {
                         console.error(`${from} or ${to} is not in the neo4j database at all !`);
@@ -2537,7 +2590,7 @@ let searchGraph = {
                         }
                         let now = 0;
                         //缓存
-                        let previousValue = await cacheHandlers.getCache(guaranteedByPathQuery + '-GTB');
+                        let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
                             now = Date.now();
                             // resultPromise = await session.run(guaranteedByPathQuery);
@@ -2548,7 +2601,7 @@ let searchGraph = {
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteedByPathQueryCost: " + guaranteedByPathQueryCost + 'ms');
                             if (resultPromise.records.length > 0) {
                                 let result = await handlerNeo4jResult(resultPromise, j);
-                                cacheHandlers.setCache(guaranteedByPathQuery + '-GTB', result);
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(result));
                                 //根据预热条件的阈值判断是否要加入预热
                                 let queryCostUp = config.warmUp_Condition.queryNeo4jCost;
                                 let recordsUp = config.warmUp_Condition.queryNeo4jRecords;
@@ -2563,11 +2616,12 @@ let searchGraph = {
                             }
                             else if (resultPromise.records.length == 0) {
                                 let nodeResults = { pathDetail: { data: { pathDetail: [], pathNum: 0 }, type: `result_${j}`, typeName: 'guaranteedByPath', names: [], codes: [] } };
+                                cacheHandlers.setCache(cacheKey, JSON.stringify(nodeResults));
                                 return resolve(nodeResults);
                             }
                         }
                         else if (previousValue) {
-                            return resolve(previousValue);
+                            return resolve(JSON.parse(previousValue));
                         }
                     }
                 }
