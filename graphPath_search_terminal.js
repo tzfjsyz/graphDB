@@ -1,7 +1,53 @@
 const Hapi = require('hapi');
 const server = new Hapi.Server();
-const apiHandlers = require("./graphSearch/apiHandlers.js");
+const apiHandlers = require('./graphSearch/apiHandlers.js');
+const cacheHandlers = require('./graphSearch/cacheHandlers.js');
 // require('events').EventEmitter.prototype._maxListeners = 100;
+const req = require('require-yml');
+const config = req('./config/source.yml');
+const autoFlushCache = config.NodeCache.autoFlushCache;
+console.log('程序重启时是否清空缓存: ' +autoFlushCache);
+const log4js = require('log4js');
+log4js.configure({
+    // appenders: {
+    //     'out': {
+    //         type: 'file',         //文件输出
+    //         filename: 'logs/queryDataInfo.log',
+    //         maxLogSize: config.logInfo.maxLogSize
+    //     }
+    // },
+    // categories: { default: { appenders: ['out'], level: 'info' } }
+    appenders: {
+        console: {
+            type: 'console'
+        },
+        log: {
+            type: "dateFile",
+            filename: "./logs/log4js_log-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
+            maxLogSize: config.logInfo.maxLogSize
+        },
+        error: {
+            type: "dateFile",
+            filename: "./logs/log4js_err-",
+            pattern: "yyyy-MM-dd.log",
+            alwaysIncludePattern: true,
+            maxLogSize: config.logInfo.maxLogSize
+        },
+        errorFilter: {
+            type: "logLevelFilter",
+            appender: "error",
+            level: "error"
+        },
+    },
+    categories: {
+        default: { appenders: ['console', 'log', 'errorFilter'], level: 'info' }
+    },
+    pm2: true,
+    pm2InstanceVar: 'INSTANCE_ID'
+});
+const logger = log4js.getLogger('graphPath_search_terminal');
 
 server.connection({
     port: 8290,
@@ -123,11 +169,26 @@ server.route({
     handler: apiHandlers.deleteLockResource
 });
 
+//外部调用接口清空缓存
+server.route({
+    method: 'GET',
+    path: '/flushCache',
+    handler: apiHandlers.deleteCacheData
+});
+
 server.start((err) => {
     if (err) {
+        console.log(err);
+        logger.error(err);
         throw err;
     }
-    console.info(`企业关系路径搜索API服务运行在:${server.info.uri}`);
+    console.log(`企业关系路径搜索API服务运行在:${server.info.uri}`);
+    logger.info(`企业关系路径搜索API服务运行在:${server.info.uri}`);
+    if (autoFlushCache == 'true') {
+        cacheHandlers.flushCache();
+        console.log('程序初始化, 清除缓存！');
+        logger.info('程序初始化, 清除缓存！');
+    }
 });
 
 process.on('unhandledRejection', (err) => {
