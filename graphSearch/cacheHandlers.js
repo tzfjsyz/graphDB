@@ -156,6 +156,7 @@ let cacheHandlers = {
             else if (err) {
                 console.error(err);
                 logger.error(err);
+                return err;
             }
         });
     },
@@ -273,6 +274,23 @@ let cacheHandlers = {
                     return reject(err);
                 }
             });
+        });
+    },
+
+    //删除redis中预热的paths 数据
+    deleteWarmUpPathsFromRedis: async function () {
+        redis_3.flushdb(function (err, res) {
+            if (!err) {
+                if (res != null) {
+                    console.log('delete the warmup paths data from redis db: '+warmUp_RedisUrl_3 +', status: ' +res);
+                    logger.info('delete the warmup paths data from redis db: '+warmUp_RedisUrl_3 +', status: ' +res);
+                }
+            }
+            else if (err) {
+                console.error(err);
+                logger.error(err);
+                return err;
+            }
         });
     },
 

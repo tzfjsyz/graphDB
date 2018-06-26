@@ -1622,6 +1622,8 @@ let searchGraph = {
                             // resultPromise = await session.run(investPathQuery);
 
                             resultPromise = await sessionRun1(investPathQuery);
+                            console.log('query neo4j server: ' +investPathQuery);
+                            logger.info('query neo4j server: ' +investPathQuery);
                             let investPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " InvestPathQueryCost: " + investPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestPathQueryCost: " + investPathQueryCost + 'ms');
@@ -1752,6 +1754,8 @@ let searchGraph = {
                             // resultPromise = await session.run(investedByPathQuery);
 
                             resultPromise = await sessionRun2(investedByPathQuery);
+                            console.log('query neo4j server: ' +investedByPathQuery);
+                            logger.info('query neo4j server: ' +investedByPathQuery);
                             let investedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " InvestedByPathQueryCost: " + investedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestedByPathQueryCost: " + investedByPathQueryCost + 'ms');
@@ -1843,6 +1847,8 @@ let searchGraph = {
                         // resultPromise = await session.run(shortestPathQuery);
 
                         resultPromise = await sessionRun3(shortestPathQuery);
+                        console.log('query neo4j server: ' +shortestPathQuery);
+                        logger.info('query neo4j server: ' +shortestPathQuery);
                         let shortestPathQueryCost = Date.now() - now;
                         logger.info(`from: ${from} to: ${to}` + " ShortestPathQueryCost: " + shortestPathQueryCost + 'ms');
                         console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", ShortestPathQueryCost: " + shortestPathQueryCost + 'ms');
@@ -1920,6 +1926,8 @@ let searchGraph = {
                             // resultPromise = await session.run(fullPathQuery);
 
                             resultPromise = await sessionRun4(fullPathQuery);
+                            console.log('query neo4j server: ' +fullPathQuery);
+                            logger.info('query neo4j server: ' +fullPathQuery);
                             let fullPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " FullPathQueryCost: " + fullPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", FullPathQueryCost: " + fullPathQueryCost + 'ms');
@@ -2045,6 +2053,8 @@ let searchGraph = {
                             // resultPromise = await session.run(commonInvestPathQuery);
 
                             resultPromise = await sessionRun5(commonInvestPathQuery);
+                            console.log('query neo4j server: ' +commonInvestPathQuery);
+                            logger.info('query neo4j server: ' +commonInvestPathQuery);
                             commonInvestPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " CommonInvestPathQueryCost: " + commonInvestPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", CommonInvestPathQueryCost: " + commonInvestPathQueryCost + 'ms');
@@ -2180,6 +2190,8 @@ let searchGraph = {
                             // resultPromise = await session.run(commonInvestedByPathQuery);
 
                             resultPromise = await sessionRun6(commonInvestedByPathQuery);
+                            console.log('query neo4j server: ' +commonInvestedByPathQuery);
+                            logger.info('query neo4j server: ' +commonInvestedByPathQuery);
                             commonInvestedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " CommonInvestedByPathQueryCost: " + commonInvestedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", CommonInvestedByPathQueryCost: " + commonInvestedByPathQueryCost + 'ms');
@@ -2494,6 +2506,8 @@ let searchGraph = {
                             // resultPromise = await session.run(guaranteePathQuery);
 
                             resultPromise = await sessionRun7(guaranteePathQuery);
+                            console.log('query neo4j server: ' +guaranteePathQuery);
+                            logger.info('query neo4j server: ' +guaranteePathQuery);
                             let guaranteePathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " guaranteePathQueryCost: " + guaranteePathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteePathQueryCost: " + guaranteePathQueryCost + 'ms');
@@ -2596,6 +2610,8 @@ let searchGraph = {
                             // resultPromise = await session.run(guaranteedByPathQuery);
 
                             resultPromise = await sessionRun8(guaranteedByPathQuery);
+                            console.log('query neo4j server: ' +guaranteedByPathQuery);
+                            logger.info('query neo4j server: ' +guaranteedByPathQuery);
                             let guaranteedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " guaranteedByPathQueryCost: " + guaranteedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteedByPathQueryCost: " + guaranteedByPathQueryCost + 'ms');
