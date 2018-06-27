@@ -1581,7 +1581,20 @@ let searchGraph = {
                         let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
                         if (!fromOutBoundNum) {
                             let fromOutBoundNumStart = Date.now();
-                            fromOutBoundNum = await getOutBoundNodeNum(from, IVDepth);                                   //获取from的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromOutBoundNum = await getOutBoundNodeNum(from, IVDepth);                                   //获取from的outbound节点数
+                                     break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
                             console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
                             cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
@@ -1589,7 +1602,20 @@ let searchGraph = {
                         let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
                         if (!toInBoundNum) {
                             let toInBoundNumStart = Date.now();
-                            toInBoundNum = await getInBoundNodeNum(to, IVDepth);                                    //获取to的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toInBoundNum = await getInBoundNodeNum(to, IVDepth);                                    //获取to的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toInBoundNumCost = Date.now() - toInBoundNumStart;
                             console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
                             cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
@@ -1621,7 +1647,22 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(investPathQuery);
 
-                            resultPromise = await sessionRun1(investPathQuery);
+                            let retryCount = 0;
+                            let resultPromise = null;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun1(investPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun1 execute fail after trying 3 times: ' +investPathQuery);
+                                logger.error('sessionRun1 execute fail after trying 3 times: ' +investPathQuery);
+                            }
                             console.log('query neo4j server: ' +investPathQuery);
                             logger.info('query neo4j server: ' +investPathQuery);
                             let investPathQueryCost = Date.now() - now;
@@ -1705,7 +1746,20 @@ let searchGraph = {
                         let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
                         if (!fromInBoundNum) {
                             let fromInBoundNumStart = Date.now();
-                            fromInBoundNum = await getInBoundNodeNum(from, IVBDepth);                                     //获取from的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromInBoundNum = await getInBoundNodeNum(from, IVBDepth);                                     //获取from的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
                             console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
                             cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
@@ -1713,7 +1767,20 @@ let searchGraph = {
                         let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
                         if (!toOutBoundNum) {
                             let toOutBoundNumStart = Date.now();
-                            toOutBoundNum = await getOutBoundNodeNum(to, IVBDepth);                                     //获取to的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toOutBoundNum = await getOutBoundNodeNum(to, IVBDepth);                                     //获取to的outbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
                             console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
                             cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
@@ -1753,7 +1820,22 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(investedByPathQuery);
 
-                            resultPromise = await sessionRun2(investedByPathQuery);
+                            let retryCount = 0;
+                            let resultPromise = null;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun2(investedByPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun2 execute fail after trying 3 times: ' +investedByPathQuery);
+                                logger.error('sessionRun2 execute fail after trying 3 times: ' +investedByPathQuery);
+                            }                           
                             console.log('query neo4j server: ' +investedByPathQuery);
                             logger.info('query neo4j server: ' +investedByPathQuery);
                             let investedByPathQueryCost = Date.now() - now;
@@ -1846,7 +1928,22 @@ let searchGraph = {
                         now = Date.now();
                         // resultPromise = await session.run(shortestPathQuery);
 
-                        resultPromise = await sessionRun3(shortestPathQuery);
+                        let retryCount = 0;
+                        let resultPromise = null;
+                        do {
+                            try {
+                                resultPromise = await sessionRun3(shortestPathQuery);
+                                break;
+                            } catch (err) {
+                                retryCount++;
+                                console.error(err);
+                                logger.error(err);
+                            }
+                        } while (retryCount < 3)
+                        if (retryCount == 3) {
+                            console.error('sessionRun3 execute fail after trying 3 times: ' +shortestPathQuery);
+                            logger.error('sessionRun3 execute fail after trying 3 times: ' +shortestPathQuery);
+                        } 
                         console.log('query neo4j server: ' +shortestPathQuery);
                         logger.info('query neo4j server: ' +shortestPathQuery);
                         let shortestPathQueryCost = Date.now() - now;
@@ -1925,7 +2022,22 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(fullPathQuery);
 
-                            resultPromise = await sessionRun4(fullPathQuery);
+                            let retryCount = 0;
+                            let resultPromise = null;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun4(fullPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun4 execute fail after trying 3 times: ' +fullPathQuery);
+                                logger.error('sessionRun4 execute fail after trying 3 times: ' +fullPathQuery);
+                            } 
                             console.log('query neo4j server: ' +fullPathQuery);
                             logger.info('query neo4j server: ' +fullPathQuery);
                             let fullPathQueryCost = Date.now() - now;
@@ -2012,7 +2124,20 @@ let searchGraph = {
                         let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
                         if (!fromOutBoundNum) {
                             let fromOutBoundNumStart = Date.now();
-                            fromOutBoundNum = await getOutBoundNodeNum(from, CIVDepth);                                   //获取from的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromOutBoundNum = await getOutBoundNodeNum(from, CIVDepth);                                   //获取from的outbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
                             console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
                             cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
@@ -2020,7 +2145,20 @@ let searchGraph = {
                         let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
                         if (!toInBoundNum) {
                             let toInBoundNumStart = Date.now();
-                            toInBoundNum = await getInBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toInBoundNum = await getInBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toInBoundNumCost = Date.now() - toInBoundNumStart;
                             console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
                             cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
@@ -2052,7 +2190,22 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(commonInvestPathQuery);
 
-                            resultPromise = await sessionRun5(commonInvestPathQuery);
+                            let retryCount = 0;
+                            let resultPromise = null;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun5(commonInvestPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun5 execute fail after trying 3 times: ' +commonInvestPathQuery);
+                                logger.error('sessionRun5 execute fail after trying 3 times: ' +commonInvestPathQuery);
+                            } 
                             console.log('query neo4j server: ' +commonInvestPathQuery);
                             logger.info('query neo4j server: ' +commonInvestPathQuery);
                             commonInvestPathQueryCost = Date.now() - now;
@@ -2138,7 +2291,20 @@ let searchGraph = {
                         let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
                         if (!fromInBoundNum) {
                             let fromInBoundNumStart = Date.now();
-                            fromInBoundNum = await getInBoundNodeNum(from, CIVBDepth);                                     //获取from的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromInBoundNum = await getInBoundNodeNum(from, CIVBDepth);                                     //获取from的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
                             console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
                             cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
@@ -2146,7 +2312,20 @@ let searchGraph = {
                         let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
                         if (!toOutBoundNum) {
                             let toOutBoundNumStart = Date.now();
-                            toOutBoundNum = await getOutBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toOutBoundNum = await getOutBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
                             console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
                             cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
@@ -2189,7 +2368,22 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(commonInvestedByPathQuery);
 
-                            resultPromise = await sessionRun6(commonInvestedByPathQuery);
+                            let retryCount = 0;
+                            let resultPromise = null;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun6(commonInvestedByPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun6 execute fail after trying 3 times: ' +commonInvestedByPathQuery);
+                                logger.error('sessionRun6 execute fail after trying 3 times: ' +commonInvestedByPathQuery);
+                            }    
                             console.log('query neo4j server: ' +commonInvestedByPathQuery);
                             logger.info('query neo4j server: ' +commonInvestedByPathQuery);
                             commonInvestedByPathQueryCost = Date.now() - now;
@@ -2477,7 +2671,20 @@ let searchGraph = {
                         let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
                         if (!fromOutBoundNum) {
                             let fromOutBoundNumStart = Date.now();
-                            fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, GTDepth);                                   //获取from的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, GTDepth);                                   //获取from的outbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
                             console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
                             cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
@@ -2485,7 +2692,20 @@ let searchGraph = {
                         let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
                         if (!toInBoundNum) {
                             let toInBoundNumStart = Date.now();
-                            toInBoundNum = await getGuaranteeInBoundNodeNum(to, GTDepth);                                    //获取to的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toInBoundNum = await getGuaranteeInBoundNodeNum(to, GTDepth);                                    //获取to的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toInBoundNumCost = Date.now() - toInBoundNumStart;
                             console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
                             cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
@@ -2502,10 +2722,25 @@ let searchGraph = {
                         //缓存
                         let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
+                            let resultPromise = null;
                             now = Date.now();
                             // resultPromise = await session.run(guaranteePathQuery);
 
-                            resultPromise = await sessionRun7(guaranteePathQuery);
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun7(guaranteePathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun7 execute fail after trying 3 times: ' +guaranteePathQuery);
+                                logger.error('sessionRun7 execute fail after trying 3 times: ' +guaranteePathQuery);
+                            } 
                             console.log('query neo4j server: ' +guaranteePathQuery);
                             logger.info('query neo4j server: ' +guaranteePathQuery);
                             let guaranteePathQueryCost = Date.now() - now;
@@ -2581,7 +2816,20 @@ let searchGraph = {
                         let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
                         if (!fromInBoundNum) {
                             let fromInBoundNumStart = Date.now();
-                            fromInBoundNum = await getGuaranteeInBoundNodeNum(from, GTBDepth);                                     //获取from的inbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    fromInBoundNum = await getGuaranteeInBoundNodeNum(from, GTBDepth);                                     //获取from的inbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +from);
+                                logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +from);
+                            }
                             let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
                             console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
                             cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
@@ -2589,7 +2837,20 @@ let searchGraph = {
                         let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
                         if (!toOutBoundNum) {
                             let toOutBoundNumStart = Date.now();
-                            toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, GTBDepth);                                     //获取to的outbound节点数
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, GTBDepth);                                     //获取to的outbound节点数
+                                    break;
+                                } catch (err) {
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                            }
                             let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
                             console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
                             cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
@@ -2606,10 +2867,25 @@ let searchGraph = {
                         //缓存
                         let previousValue = await cacheHandlers.getCache(cacheKey);
                         if (!previousValue) {
+                            let resultPromise = null;
                             now = Date.now();
                             // resultPromise = await session.run(guaranteedByPathQuery);
 
-                            resultPromise = await sessionRun8(guaranteedByPathQuery);
+                            let retryCount = 0;
+                            do {
+                                try {
+                                    resultPromise = await sessionRun8(guaranteedByPathQuery);
+                                    break;
+                                } catch (err) {
+                                    retryCount++;
+                                    console.error(err);
+                                    logger.error(err);
+                                }
+                            } while (retryCount < 3)
+                            if (retryCount == 3) {
+                                console.error('sessionRun8 execute fail after trying 3 times: ' +guaranteedByPathQuery);
+                                logger.error('sessionRun8 execute fail after trying 3 times: ' +guaranteedByPathQuery);
+                            } 
                             console.log('query neo4j server: ' +guaranteedByPathQuery);
                             logger.info('query neo4j server: ' +guaranteedByPathQuery);
                             let guaranteedByPathQueryCost = Date.now() - now;
