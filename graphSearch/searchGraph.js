@@ -1905,10 +1905,10 @@ let searchGraph = {
                 // let shortestPathQuery = `match p= allShortestPaths((from:company{ITCode2: ${from}})-[r:invests*]-(to:company{ITCode2: ${to}})) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;
                 let shortestPathQuery = null;
                 if (pathType == 'invests' || !pathType) {
-                    shortestPathQuery = `match p= allShortestPaths((from:company{ITCode2: ${from}})-[r:invests*]-(to:company{ITCode2: ${to}})) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p limit 10`;
+                    shortestPathQuery = `match p= allShortestPaths((from:company{ITCode2: ${from}})-[r:invests*]-(to:company{ITCode2: ${to}})) using index from:company(ITCode2) using index to:company(ITCode2) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p limit 10`;
                 }
                 else if (pathType == 'all') {
-                    shortestPathQuery = `match p= allShortestPaths((from:company{ITCode2: ${from}})-[r:invests|guarantees*]-(to:company{ITCode2: ${to}})) return p limit 10`;
+                    shortestPathQuery = `match p= allShortestPaths((from:company{ITCode2: ${from}})-[r:invests|guarantees*]-(to:company{ITCode2: ${to}})) using index from:company(ITCode2) using index to:company(ITCode2) return p limit 10`;
                 }
                 if (from == null || to == null) {
                     console.error(`${from} or ${to} is not in the neo4j database at all !`);
@@ -1998,10 +1998,10 @@ let searchGraph = {
                     // let fullPathQuery = `match p= (from:company{ITCode2: ${from}})-[r:invests*..${FUDepth}]-(to:company{ITCode2: ${to}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;  
                     let fullPathQuery = null;
                     if (pathType == 'invests' || !pathType) {
-                        fullPathQuery = `match p= (from:company{ITCode2: ${from}})-[r:invests*..${FUDepth}]-(to:company{ITCode2: ${to}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        fullPathQuery = `match p= (from:company{ITCode2: ${from}})-[r:invests*..${FUDepth}]-(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
                     }
                     else if (pathType == 'all') {
-                        fullPathQuery = `match p= (from:company{ITCode2: ${from}})-[r:invests|guarantees*..${FUDepth}]-(to:company{ITCode2: ${to}}) return p`;
+                        fullPathQuery = `match p= (from:company{ITCode2: ${from}})-[r:invests|guarantees*..${FUDepth}]-(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                     }
 
                     if (from == null || to == null) {
@@ -2142,13 +2142,13 @@ let searchGraph = {
                             console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
                             cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
                         }
-                        let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
-                        if (!toInBoundNum) {
-                            let toInBoundNumStart = Date.now();
+                        let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
+                        if (!toOutBoundNum) {
+                            let toOutBoundNumStart = Date.now();
                             let retryCount = 0;
                             do {
                                 try {
-                                    toInBoundNum = await getInBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
+                                    toOutBoundNum = await getOutBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
                                     break;
                                 } catch (err) {
                                     console.error(err);
@@ -2156,12 +2156,12 @@ let searchGraph = {
                                 }
                             } while (retryCount < 3)
                             if (retryCount == 3) {
-                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
                             }
-                            let toInBoundNumCost = Date.now() - toInBoundNumStart;
-                            console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
-                            cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                            let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
+                            console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
+                            cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
                         }
                         let commonInvestPathQuery = null;
                         // let commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests*..${CIVDepth/2}]->()<-[r2:invests*..${CIVDepth/2}]-(to:company{ITCode2: ${to}}) where from.isExtra = '0' and to.isExtra = '0' return p`;                    
@@ -2169,16 +2169,16 @@ let searchGraph = {
                         let commonInvestPathQueryOne = null;
                         let commonInvestPathQueryTwo = null;
                         if (pathType == 'invests' || !pathType) {
-                            commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests*..${CIVDepth / 2}]->()<-[r2:invests*..${CIVDepth / 2}]-(to:company{ITCode2: ${to}}) return p`;
-                            commonInvestPathQueryTwo = `match p= (from:company{ITCode2: ${to}})-[r1:invests*..${CIVDepth / 2}]->()<-[r2:invests*..${CIVDepth / 2}]-(to:company{ITCode2: ${from}}) return p`;
+                            commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests*..${CIVDepth / 2}]->()<-[r2:invests*..${CIVDepth / 2}]-(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                            commonInvestPathQueryTwo = `match p= (from:company{ITCode2: ${to}})-[r1:invests*..${CIVDepth / 2}]->()<-[r2:invests*..${CIVDepth / 2}]-(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                         }
                         else if (pathType == 'all') {
-                            commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: ${to}}) return p`;
-                            commonInvestPathQueryTwo = `match p= (from:company{ITCode2: ${to}})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: ${from}}) return p`;
+                            commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                            commonInvestPathQueryTwo = `match p= (from:company{ITCode2: ${to}})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                         }
-                        if (fromOutBoundNum > toInBoundNum) {
+                        if (fromOutBoundNum > toOutBoundNum) {
                             commonInvestPathQuery = commonInvestPathQueryOne;
-                        } else if (fromOutBoundNum <= toInBoundNum) {
+                        } else if (fromOutBoundNum <= toOutBoundNum) {
                             commonInvestPathQuery = commonInvestPathQueryTwo;
                         }
                         let now = 0;
@@ -2309,13 +2309,13 @@ let searchGraph = {
                             console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
                             cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
                         }
-                        let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
-                        if (!toOutBoundNum) {
-                            let toOutBoundNumStart = Date.now();
+                        let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
+                        if (!toInBoundNum) {
+                            let toInBoundNumStart = Date.now();
                             let retryCount = 0;
                             do {
                                 try {
-                                    toOutBoundNum = await getOutBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
+                                    toInBoundNum = await getInBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
                                     break;
                                 } catch (err) {
                                     console.error(err);
@@ -2323,40 +2323,40 @@ let searchGraph = {
                                 }
                             } while (retryCount < 3)
                             if (retryCount == 3) {
-                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
                             }
-                            let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
-                            console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
-                            cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                            let toInBoundNumCost = Date.now() - toInBoundNumStart;
+                            console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
+                            cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
                         }
                         let commonInvestedByPathQuery = null;
                         let commonInvestedByPathQueryOne = null;
                         let commonInvestedByPathQueryTwo = null;
                         if (pathType == 'invests' || !pathType) {
                             if (isExtra == 0 || isExtra == '0') {
-                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests*..${CIVBDepth / 2}]-(com)-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
-                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests*..${CIVBDepth / 2}]-(com)-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
+                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests*..${CIVBDepth / 2}]-(com)-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
+                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests*..${CIVBDepth / 2}]-(com)-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
                             }
                             else {
-                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests*..${CIVBDepth / 2}]-()-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) return p`;
-                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests*..${CIVBDepth / 2}]-()-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) return p`;
+                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests*..${CIVBDepth / 2}]-()-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests*..${CIVBDepth / 2}]-()-[r2:invests*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                             }
                         }
                         else if (pathType == 'all') {
                             if (isExtra == 0 || isExtra == '0') {
-                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-(com)-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
-                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-(com)-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
+                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-(com)-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
+                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-(com)-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) where from.isExtra = '0' and to.isExtra = '0' and com.isExtra = '0' return p`;
                             }
                             else {
-                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-()-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) return p`;
-                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-()-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) return p`;
+                                commonInvestedByPathQueryOne = `match p= (from:company{ITCode2: ${from}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-()-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${to}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                                commonInvestedByPathQueryTwo = `match p= (from:company{ITCode2: ${to}})<-[r1:invests|guarantees*..${CIVBDepth / 2}]-()-[r2:invests|guarantees*..${CIVBDepth / 2}]->(to:company{ITCode2: ${from}}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                             }
                         }
 
-                        if (toOutBoundNum < fromInBoundNum) {
+                        if (toInBoundNum < fromInBoundNum) {
                             commonInvestedByPathQuery = commonInvestedByPathQueryOne;
-                        } else if (toOutBoundNum >= fromInBoundNum) {
+                        } else if (toInBoundNum >= fromInBoundNum) {
                             commonInvestedByPathQuery = commonInvestedByPathQueryTwo;
                         }
                         let now = 0;
