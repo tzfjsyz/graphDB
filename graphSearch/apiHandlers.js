@@ -307,6 +307,10 @@ let apiHandlers = {
         if (!IVDepth) IVDepth = config.pathDepth.IVDepth;
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -320,8 +324,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -334,8 +338,8 @@ let apiHandlers = {
                     searchGraph.queryInvestPath(queryCodeOne, queryCodeTwo, IVDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -374,6 +378,10 @@ let apiHandlers = {
         if (!IVBDepth) IVBDepth = config.pathDepth.IVBDepth;
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -387,8 +395,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -401,8 +409,8 @@ let apiHandlers = {
                     searchGraph.queryInvestedByPath(queryCodeOne, queryCodeTwo, IVBDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -442,6 +450,10 @@ let apiHandlers = {
         if (!highWeight) highWeight = 100;                                 //默认最高投资比例为100
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -455,8 +467,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -469,8 +481,8 @@ let apiHandlers = {
                     searchGraph.queryShortestPath(queryCodeOne, queryCodeTwo, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -512,6 +524,10 @@ let apiHandlers = {
         if (!FUDepth) FUDepth = config.pathDepth.FUDepth;
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -525,8 +541,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -539,8 +555,8 @@ let apiHandlers = {
                     searchGraph.queryfullPath(queryCodeOne, queryCodeTwo, FUDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -583,6 +599,10 @@ let apiHandlers = {
         if (!CIVDepth) CIVDepth = config.pathDepth.CIVDepth;
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -596,8 +616,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -610,8 +630,8 @@ let apiHandlers = {
                     searchGraph.queryCommonInvestPath(queryCodeOne, queryCodeTwo, CIVDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -662,6 +682,10 @@ let apiHandlers = {
         }
         let pathType = request.query.pathType;                             //默认返回的路径方式为invests
         if (!pathType) pathType = 'invests';
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             if (lowWeight && highWeight && lowWeight > highWeight) {
                 return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
@@ -675,8 +699,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -689,8 +713,8 @@ let apiHandlers = {
                     searchGraph.queryCommonInvestedByPath(queryCodeOne, queryCodeTwo, CIVBDepth, lowWeight, highWeight, isExtra, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
@@ -844,6 +868,10 @@ let apiHandlers = {
         let codeTwo = request.query.to;
         let GTDepth = request.query.guaranteePathDepth;
         if (!GTDepth) GTDepth = config.pathDepth.GTDepth;
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             let res = null;
             if (codeOne && codeTwo) {
@@ -854,13 +882,13 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
                     searchGraph.queryGuaranteePath(codeOne, codeTwo, GTDepth)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryGuaranteePath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${codeOne} to: ${codeTwo}` + ", queryGuaranteePath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryGuaranteePath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryGuaranteePath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: "no results!" });
@@ -894,6 +922,10 @@ let apiHandlers = {
         let codeTwo = request.query.to;
         let GTBDepth = request.query.guaranteedByPathDepth;
         if (!GTBDepth) GTBDepth = config.pathDepth.GTBDepth;
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
         try {
             let res = null;
             if (codeOne && codeTwo) {
@@ -904,13 +936,13 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('queryGuaranteeedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('queryGuaranteedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' +user +', queryGuaranteeedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' +user +', queryGuaranteedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     searchGraph.queryGuaranteedByPath(codeOne, codeTwo, GTBDepth)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
-                            logger.info(`from: ${codeOne} to: ${codeTwo}` + " queryGuaranteeedByPath_totalQueryCost: " + totalQueryCost + 'ms');
-                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${codeOne} to: ${codeTwo}` + ", queryGuaranteeedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryGuaranteeedByPath_totalQueryCost: " + totalQueryCost + 'ms');
+                            console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryGuaranteeedByPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
                                 return reply.response({ direction: { from: codeOne, to: codeTwo }, results: "no results!" });

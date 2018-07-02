@@ -940,7 +940,7 @@ async function handlerPromise(from, to, result, index) {
         //         }
         //     }
         // }
-        
+
         //根据投资关系pathArrayOne中涉及到的机构才展示担保关系pathArrayTwo
         for (let subResult of tempResultTwo) {
             let newSubResult = { path: [] };
@@ -1578,48 +1578,52 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
-                        if (!fromOutBoundNum) {
-                            let fromOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromOutBoundNum = await getOutBoundNodeNum(from, IVDepth);                                   //获取from的outbound节点数
-                                     break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
+                        // if (!fromOutBoundNum) {
+                        let fromOutBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromOutBoundNum = 0;
+                        do {
+                            try {
+                                fromOutBoundNum = await getOutBoundNodeNum(from, IVDepth);                                   //获取from的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
-                            console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
-                            cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getOutBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
-                        if (!toInBoundNum) {
-                            let toInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toInBoundNum = await getInBoundNodeNum(to, IVDepth);                                    //获取to的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
+                        console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
+                        // cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        // }
+                        // let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
+                        // if (!toInBoundNum) {
+                        let toInBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        let toInBoundNum = 0;
+                        do {
+                            try {
+                                toInBoundNum = await getInBoundNodeNum(to, IVDepth);                                    //获取to的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toInBoundNumCost = Date.now() - toInBoundNumStart;
-                            console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
-                            cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getInBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getInBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toInBoundNumCost = Date.now() - toInBoundNumStart;
+                        console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
+                        // cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        // }
                         let investPathQuery = null;
                         let investPathQuery_outBound = null;
                         let investPathQuery_inBound = null;
@@ -1637,8 +1641,12 @@ let searchGraph = {
                         }
                         if (fromOutBoundNum > toInBoundNum) {
                             investPathQuery = investPathQuery_outBound;
+                            console.log('fromOutBoundNum > toInBoundNum: ' + `${fromOutBoundNum} > ${toInBoundNum}`);
+                            logger.info('fromOutBoundNum > toInBoundNum: ' + `${fromOutBoundNum} > ${toInBoundNum}`);
                         } else if (fromOutBoundNum <= toInBoundNum) {
                             investPathQuery = investPathQuery_inBound;
+                            console.log('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
+                            logger.info('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -1647,24 +1655,24 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(investPathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             let resultPromise = null;
                             do {
                                 try {
                                     resultPromise = await sessionRun1(investPathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun1 execute fail after trying 3 times: ' +investPathQuery);
-                                logger.error('sessionRun1 execute fail after trying 3 times: ' +investPathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun1 execute fail after trying 3 times: ' + investPathQuery);
+                                logger.error('sessionRun1 execute fail after trying 3 times: ' + investPathQuery);
                             }
-                            console.log('query neo4j server: ' +investPathQuery);
-                            logger.info('query neo4j server: ' +investPathQuery);
+                            console.log('query neo4j server: ' + investPathQuery);
+                            logger.info('query neo4j server: ' + investPathQuery);
                             let investPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " InvestPathQueryCost: " + investPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestPathQueryCost: " + investPathQueryCost + 'ms');
@@ -1743,48 +1751,52 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
-                        if (!fromInBoundNum) {
-                            let fromInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromInBoundNum = await getInBoundNodeNum(from, IVBDepth);                                     //获取from的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
+                        // if (!fromInBoundNum) {
+                        let fromInBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromInBoundNum = 0;
+                        do {
+                            try {
+                                fromInBoundNum = await getInBoundNodeNum(from, IVBDepth);                                     //获取from的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
-                            console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
-                            cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getInBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getInBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
-                        if (!toOutBoundNum) {
-                            let toOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toOutBoundNum = await getOutBoundNodeNum(to, IVBDepth);                                     //获取to的outbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
+                        console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
+                        // cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        // }
+                        // let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
+                        // if (!toOutBoundNum) {
+                        let toOutBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        let toOutBoundNum = 0;
+                        do {
+                            try {
+                                toOutBoundNum = await getOutBoundNodeNum(to, IVBDepth);                                     //获取to的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
-                            console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
-                            cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getOutBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
+                        console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
+                        // cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        // }
                         let investedByPathQuery = null;
                         let investedByPathQuery_inBound = null;
                         let investedByPathQuery_outBound = null;
@@ -1810,8 +1822,12 @@ let searchGraph = {
                         // }
                         if (toOutBoundNum < fromInBoundNum) {
                             investedByPathQuery = investedByPathQuery_inBound;
+                            console.log('toOutBoundNum < fromInBoundNum: ' + `${toOutBoundNum} < ${fromInBoundNum}`);
+                            logger.log('toOutBoundNum < fromInBoundNum: ' + `${toOutBoundNum} < ${fromInBoundNum}`);
                         } else if (toOutBoundNum >= fromInBoundNum) {
                             investedByPathQuery = investedByPathQuery_outBound;
+                            console.log('toOutBoundNum >= fromInBoundNum: ' + `${toOutBoundNum} >= ${fromInBoundNum}`);
+                            logger.info('toOutBoundNum >= fromInBoundNum: ' + `${toOutBoundNum} >= ${fromInBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -1820,24 +1836,24 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(investedByPathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             let resultPromise = null;
                             do {
                                 try {
                                     resultPromise = await sessionRun2(investedByPathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun2 execute fail after trying 3 times: ' +investedByPathQuery);
-                                logger.error('sessionRun2 execute fail after trying 3 times: ' +investedByPathQuery);
-                            }                           
-                            console.log('query neo4j server: ' +investedByPathQuery);
-                            logger.info('query neo4j server: ' +investedByPathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun2 execute fail after trying 3 times: ' + investedByPathQuery);
+                                logger.error('sessionRun2 execute fail after trying 3 times: ' + investedByPathQuery);
+                            }
+                            console.log('query neo4j server: ' + investedByPathQuery);
+                            logger.info('query neo4j server: ' + investedByPathQuery);
                             let investedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " InvestedByPathQueryCost: " + investedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", InvestedByPathQueryCost: " + investedByPathQueryCost + 'ms');
@@ -1941,11 +1957,11 @@ let searchGraph = {
                             }
                         } while (retryCount < 3)
                         if (retryCount == 3) {
-                            console.error('sessionRun3 execute fail after trying 3 times: ' +shortestPathQuery);
-                            logger.error('sessionRun3 execute fail after trying 3 times: ' +shortestPathQuery);
-                        } 
-                        console.log('query neo4j server: ' +shortestPathQuery);
-                        logger.info('query neo4j server: ' +shortestPathQuery);
+                            console.error('sessionRun3 execute fail after trying 3 times: ' + shortestPathQuery);
+                            logger.error('sessionRun3 execute fail after trying 3 times: ' + shortestPathQuery);
+                        }
+                        console.log('query neo4j server: ' + shortestPathQuery);
+                        logger.info('query neo4j server: ' + shortestPathQuery);
                         let shortestPathQueryCost = Date.now() - now;
                         logger.info(`from: ${from} to: ${to}` + " ShortestPathQueryCost: " + shortestPathQueryCost + 'ms');
                         console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", ShortestPathQueryCost: " + shortestPathQueryCost + 'ms');
@@ -2035,11 +2051,11 @@ let searchGraph = {
                                 }
                             } while (retryCount < 3)
                             if (retryCount == 3) {
-                                console.error('sessionRun4 execute fail after trying 3 times: ' +fullPathQuery);
-                                logger.error('sessionRun4 execute fail after trying 3 times: ' +fullPathQuery);
-                            } 
-                            console.log('query neo4j server: ' +fullPathQuery);
-                            logger.info('query neo4j server: ' +fullPathQuery);
+                                console.error('sessionRun4 execute fail after trying 3 times: ' + fullPathQuery);
+                                logger.error('sessionRun4 execute fail after trying 3 times: ' + fullPathQuery);
+                            }
+                            console.log('query neo4j server: ' + fullPathQuery);
+                            logger.info('query neo4j server: ' + fullPathQuery);
                             let fullPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " FullPathQueryCost: " + fullPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", FullPathQueryCost: " + fullPathQueryCost + 'ms');
@@ -2121,48 +2137,52 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
-                        if (!fromOutBoundNum) {
-                            let fromOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromOutBoundNum = await getOutBoundNodeNum(from, CIVDepth);                                   //获取from的outbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
+                        // if (!fromOutBoundNum) {
+                        let fromOutBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromOutBoundNum = 0;
+                        do {
+                            try {
+                                fromOutBoundNum = await getOutBoundNodeNum(from, CIVDepth);                                   //获取from的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
-                            console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
-                            cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getOutBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
-                        if (!toOutBoundNum) {
-                            let toOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toOutBoundNum = await getOutBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
+                        console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
+                        // cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        // }
+                        // let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
+                        // if (!toOutBoundNum) {
+                        let toOutBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        let toOutBoundNum = 0;
+                        do {
+                            try {
+                                toOutBoundNum = await getOutBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
-                            console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
-                            cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getOutBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getOutBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
+                        console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
+                        // cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        // }
                         let commonInvestPathQuery = null;
                         // let commonInvestPathQueryOne = `match p= (from:company{ITCode2: ${from}})-[r1:invests*..${CIVDepth/2}]->()<-[r2:invests*..${CIVDepth/2}]-(to:company{ITCode2: ${to}}) where from.isExtra = '0' and to.isExtra = '0' return p`;                    
                         // let commonInvestPathQueryTwo = `match p= (from:company{ITCode2: ${to}})-[r1:invests*..${CIVDepth/2}]->()<-[r2:invests*..${CIVDepth/2}]-(to:company{ITCode2: ${from}}) where from.isExtra = '0' and to.isExtra = '0' return p`;                    
@@ -2178,8 +2198,12 @@ let searchGraph = {
                         }
                         if (fromOutBoundNum > toOutBoundNum) {
                             commonInvestPathQuery = commonInvestPathQueryOne;
+                            console.log('fromOutBoundNum > toOutBoundNum: ' + `${fromOutBoundNum} > ${toOutBoundNum}`);
+                            logger.info('fromOutBoundNum > toOutBoundNum: ' + `${fromOutBoundNum} > ${toOutBoundNum}`);
                         } else if (fromOutBoundNum <= toOutBoundNum) {
                             commonInvestPathQuery = commonInvestPathQueryTwo;
+                            console.log('fromOutBoundNum <= toOutBoundNum: ' + `${fromOutBoundNum} <= ${toOutBoundNum}`);
+                            logger.info('fromOutBoundNum <= toOutBoundNum: ' + `${fromOutBoundNum} <= ${toOutBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -2190,24 +2214,24 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(commonInvestPathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             let resultPromise = null;
                             do {
                                 try {
                                     resultPromise = await sessionRun5(commonInvestPathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun5 execute fail after trying 3 times: ' +commonInvestPathQuery);
-                                logger.error('sessionRun5 execute fail after trying 3 times: ' +commonInvestPathQuery);
-                            } 
-                            console.log('query neo4j server: ' +commonInvestPathQuery);
-                            logger.info('query neo4j server: ' +commonInvestPathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun5 execute fail after trying 3 times: ' + commonInvestPathQuery);
+                                logger.error('sessionRun5 execute fail after trying 3 times: ' + commonInvestPathQuery);
+                            }
+                            console.log('query neo4j server: ' + commonInvestPathQuery);
+                            logger.info('query neo4j server: ' + commonInvestPathQuery);
                             commonInvestPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " CommonInvestPathQueryCost: " + commonInvestPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", CommonInvestPathQueryCost: " + commonInvestPathQueryCost + 'ms');
@@ -2288,48 +2312,51 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
-                        if (!fromInBoundNum) {
-                            let fromInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromInBoundNum = await getInBoundNodeNum(from, CIVBDepth);                                     //获取from的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
+                        // if (!fromInBoundNum) {
+                        let fromInBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromInBoundNum = 0;
+                        do {
+                            try {
+                                fromInBoundNum = await getInBoundNodeNum(from, CIVBDepth);                                     //获取from的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
-                            console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
-                            cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getInBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getInBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
-                        if (!toInBoundNum) {
-                            let toInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toInBoundNum = await getInBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getInBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
+                        console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
+                        // cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        // }
+                        // let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
+                        // if (!toInBoundNum) {
+                        let toInBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        do {
+                            try {
+                                toInBoundNum = await getInBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toInBoundNumCost = Date.now() - toInBoundNumStart;
-                            console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
-                            cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getInBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getInBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toInBoundNumCost = Date.now() - toInBoundNumStart;
+                        console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
+                        // cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        // }
                         let commonInvestedByPathQuery = null;
                         let commonInvestedByPathQueryOne = null;
                         let commonInvestedByPathQueryTwo = null;
@@ -2356,8 +2383,12 @@ let searchGraph = {
 
                         if (toInBoundNum < fromInBoundNum) {
                             commonInvestedByPathQuery = commonInvestedByPathQueryOne;
+                            console.log('toInBoundNum < fromInBoundNum: ' + `${toInBoundNum} < ${fromInBoundNum}`);
+                            logger.info('toInBoundNum < fromInBoundNum: ' + `${toInBoundNum} < ${fromInBoundNum}`);
                         } else if (toInBoundNum >= fromInBoundNum) {
                             commonInvestedByPathQuery = commonInvestedByPathQueryTwo;
+                            console.log('toInBoundNum >= fromInBoundNum: ' + `${toInBoundNum} >= ${fromInBoundNum}`);
+                            logger.info('toInBoundNum >= fromInBoundNum: ' + `${toInBoundNum} >= ${fromInBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -2368,24 +2399,24 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(commonInvestedByPathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             let resultPromise = null;
                             do {
                                 try {
                                     resultPromise = await sessionRun6(commonInvestedByPathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun6 execute fail after trying 3 times: ' +commonInvestedByPathQuery);
-                                logger.error('sessionRun6 execute fail after trying 3 times: ' +commonInvestedByPathQuery);
-                            }    
-                            console.log('query neo4j server: ' +commonInvestedByPathQuery);
-                            logger.info('query neo4j server: ' +commonInvestedByPathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun6 execute fail after trying 3 times: ' + commonInvestedByPathQuery);
+                                logger.error('sessionRun6 execute fail after trying 3 times: ' + commonInvestedByPathQuery);
+                            }
+                            console.log('query neo4j server: ' + commonInvestedByPathQuery);
+                            logger.info('query neo4j server: ' + commonInvestedByPathQuery);
                             commonInvestedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " CommonInvestedByPathQueryCost: " + commonInvestedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` from: ${from} to: ${to}` + ", CommonInvestedByPathQueryCost: " + commonInvestedByPathQueryCost + 'ms');
@@ -2668,55 +2699,63 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
-                        if (!fromOutBoundNum) {
-                            let fromOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, GTDepth);                                   //获取from的outbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
+                        // if (!fromOutBoundNum) {
+                        let fromOutBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromOutBoundNum = 0;
+                        do {
+                            try {
+                                fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, GTDepth);                                   //获取from的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
-                            console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
-                            cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
-                        if (!toInBoundNum) {
-                            let toInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toInBoundNum = await getGuaranteeInBoundNodeNum(to, GTDepth);                                    //获取to的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromOutBoundNumCost = Date.now() - fromOutBoundNumStart;
+                        console.log(`${from} fromOutBoundNumCost: ` + fromOutBoundNumCost + 'ms' + ', fromOutBoundNum: ' + fromOutBoundNum);
+                        // cacheHandlers.setCache(`${from}-OutBound`, fromOutBoundNum);
+                        // }
+                        // let toInBoundNum = await cacheHandlers.getCache(`${to}-InBound`);
+                        // if (!toInBoundNum) {
+                        let toInBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        let toInBoundNum = 0;
+                        do {
+                            try {
+                                toInBoundNum = await getGuaranteeInBoundNodeNum(to, GTDepth);                                    //获取to的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toInBoundNumCost = Date.now() - toInBoundNumStart;
-                            console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
-                            cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toInBoundNumCost = Date.now() - toInBoundNumStart;
+                        console.log(`${to} toInBoundNumCost: ` + toInBoundNumCost + 'ms' + ', toInBoundNum: ' + toInBoundNum);
+                        // cacheHandlers.setCache(`${to}-InBound`, toInBoundNum);
+                        // }
                         let guaranteePathQuery = null;
                         let guaranteePathQuery_outBound = `match p= (from:company{ITCode2: ${from}})-[r:guarantees*..${GTDepth}]->(to:company{ITCode2: ${to}}) return p`;
                         let guaranteePathQuery_inBound = `match p= (from:company{ITCode2: ${to}})<-[r:guarantees*..${GTDepth}]-(to:company{ITCode2: ${from}}) return p`;
                         if (fromOutBoundNum > toInBoundNum) {
                             guaranteePathQuery = guaranteePathQuery_outBound;
+                            console.log('fromOutBoundNum > toInBoundNum: ' + `${fromOutBoundNum} > ${toInBoundNum}`);
+                            logger.info('fromOutBoundNum > toInBoundNum: ' + `${fromOutBoundNum} > ${toInBoundNum}`);
                         } else if (fromOutBoundNum <= toInBoundNum) {
                             guaranteePathQuery = guaranteePathQuery_inBound;
+                            console.log('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
+                            logger.info('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -2726,23 +2765,23 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(guaranteePathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             do {
                                 try {
                                     resultPromise = await sessionRun7(guaranteePathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun7 execute fail after trying 3 times: ' +guaranteePathQuery);
-                                logger.error('sessionRun7 execute fail after trying 3 times: ' +guaranteePathQuery);
-                            } 
-                            console.log('query neo4j server: ' +guaranteePathQuery);
-                            logger.info('query neo4j server: ' +guaranteePathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun7 execute fail after trying 3 times: ' + guaranteePathQuery);
+                                logger.error('sessionRun7 execute fail after trying 3 times: ' + guaranteePathQuery);
+                            }
+                            console.log('query neo4j server: ' + guaranteePathQuery);
+                            logger.info('query neo4j server: ' + guaranteePathQuery);
                             let guaranteePathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " guaranteePathQueryCost: " + guaranteePathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteePathQueryCost: " + guaranteePathQueryCost + 'ms');
@@ -2813,55 +2852,63 @@ let searchGraph = {
                         return resolve(nodeResults);
                     }
                     else if (from != null && to != null) {
-                        let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
-                        if (!fromInBoundNum) {
-                            let fromInBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    fromInBoundNum = await getGuaranteeInBoundNodeNum(from, GTBDepth);                                     //获取from的inbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +from);
-                                logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' +from);
+                        // let fromInBoundNum = await cacheHandlers.getCache(`${from}-InBound`);
+                        // if (!fromInBoundNum) {
+                        let fromInBoundNumStart = Date.now();
+                        let retryCountOne = 0;
+                        let fromInBoundNum = 0;
+                        do {
+                            try {
+                                fromInBoundNum = await getGuaranteeInBoundNodeNum(from, GTBDepth);                                     //获取from的inbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountOne++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
-                            console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
-                            cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        } while (retryCountOne < 3)
+                        if (retryCountOne == 3) {
+                            console.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' + from);
+                            logger.error('getGuaranteeInBoundNodeNum execute fail after trying 3 times: ' + from);
                         }
-                        let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
-                        if (!toOutBoundNum) {
-                            let toOutBoundNumStart = Date.now();
-                            let retryCount = 0;
-                            do {
-                                try {
-                                    toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, GTBDepth);                                     //获取to的outbound节点数
-                                    break;
-                                } catch (err) {
-                                    console.error(err);
-                                    logger.error(err);
-                                }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +to);
-                                logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' +to);
+                        let fromInBoundNumCost = Date.now() - fromInBoundNumStart;
+                        console.log(`${from} fromInBoundNumCost: ` + fromInBoundNumCost + 'ms' + ', fromInBoundNum: ' + fromInBoundNum);
+                        // cacheHandlers.setCache(`${from}-InBound`, fromInBoundNum);
+                        // }
+                        // let toOutBoundNum = await cacheHandlers.getCache(`${to}-OutBound`);
+                        // if (!toOutBoundNum) {
+                        let toOutBoundNumStart = Date.now();
+                        let retryCountTwo = 0;
+                        let toOutBoundNum = 0;
+                        do {
+                            try {
+                                toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, GTBDepth);                                     //获取to的outbound节点数
+                                break;
+                            } catch (err) {
+                                retryCountTwo++;
+                                console.error(err);
+                                logger.error(err);
                             }
-                            let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
-                            console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
-                            cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        } while (retryCountTwo < 3)
+                        if (retryCountTwo == 3) {
+                            console.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' + to);
+                            logger.error('getGuaranteeOutBoundNodeNum execute fail after trying 3 times: ' + to);
                         }
+                        let toOutBoundNumCost = Date.now() - toOutBoundNumStart;
+                        console.log(`${to} toOutBoundNumCost: ` + toOutBoundNumCost + 'ms' + ', toOutBoundNum: ' + toOutBoundNum);
+                        // cacheHandlers.setCache(`${to}-OutBound`, toOutBoundNum);
+                        // }
                         let guaranteedByPathQuery = null;
                         let guaranteedByPathQuery_inBound = `match p= (from:company{ITCode2: ${from}})<-[r:guarantees*..${GTBDepth}]-(to:company{ITCode2: ${to}}) return p`;
                         let guaranteedByPathQuery_outBound = `match p= (from:company{ITCode2: ${to}})-[r:guarantees*..${GTBDepth}]->(to:company{ITCode2: ${from}}) return p`;
                         if (toOutBoundNum < fromInBoundNum) {
                             guaranteedByPathQuery = guaranteedByPathQuery_inBound;
+                            console.log('toOutBoundNum < fromInBoundNum: ' +`${toOutBoundNum} < ${fromInBoundNum}`);
+                            logger.info('toOutBoundNum < fromInBoundNum: ' +`${toOutBoundNum} < ${fromInBoundNum}`);
                         } else if (toOutBoundNum >= fromInBoundNum) {
                             guaranteedByPathQuery = guaranteedByPathQuery_outBound;
+                            console.log('toOutBoundNum >= fromInBoundNum: ' +`${toOutBoundNum} >= ${fromInBoundNum}`);
+                            logger.info('toOutBoundNum >= fromInBoundNum: ' +`${toOutBoundNum} >= ${fromInBoundNum}`);
                         }
                         let now = 0;
                         //缓存
@@ -2871,23 +2918,23 @@ let searchGraph = {
                             now = Date.now();
                             // resultPromise = await session.run(guaranteedByPathQuery);
 
-                            let retryCount = 0;
+                            let retryCountThree = 0;
                             do {
                                 try {
                                     resultPromise = await sessionRun8(guaranteedByPathQuery);
                                     break;
                                 } catch (err) {
-                                    retryCount++;
+                                    retryCountThree++;
                                     console.error(err);
                                     logger.error(err);
                                 }
-                            } while (retryCount < 3)
-                            if (retryCount == 3) {
-                                console.error('sessionRun8 execute fail after trying 3 times: ' +guaranteedByPathQuery);
-                                logger.error('sessionRun8 execute fail after trying 3 times: ' +guaranteedByPathQuery);
-                            } 
-                            console.log('query neo4j server: ' +guaranteedByPathQuery);
-                            logger.info('query neo4j server: ' +guaranteedByPathQuery);
+                            } while (retryCountThree < 3)
+                            if (retryCountThree == 3) {
+                                console.error('sessionRun8 execute fail after trying 3 times: ' + guaranteedByPathQuery);
+                                logger.error('sessionRun8 execute fail after trying 3 times: ' + guaranteedByPathQuery);
+                            }
+                            console.log('query neo4j server: ' + guaranteedByPathQuery);
+                            logger.info('query neo4j server: ' + guaranteedByPathQuery);
                             let guaranteedByPathQueryCost = Date.now() - now;
                             logger.info(`from: ${from} to: ${to}` + " guaranteedByPathQueryCost: " + guaranteedByPathQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + `from: ${from} to: ${to}` + ", guaranteedByPathQueryCost: " + guaranteedByPathQueryCost + 'ms');
