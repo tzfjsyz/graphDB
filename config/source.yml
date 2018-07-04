@@ -104,7 +104,7 @@ schedule:
   hour:
     12
   minute:
-    0       
+    0   
 
 #控制任务并发, 加锁机制信息
 lockInfo:

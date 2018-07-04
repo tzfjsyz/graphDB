@@ -25,7 +25,7 @@ let redlock = new Redlock(
 
         // the max number of times Redlock will attempt
         // to lock a resource before erroring
-        retryCount: 1000,
+        retryCount: 10,
 
         // the time in ms between attempts
         retryDelay: 10000, // time in ms
@@ -119,14 +119,26 @@ rule.hour = config.schedule.hour;
 rule.minute = config.schedule.minute;
 console.log('定时主动预热paths时间: ' + rule.hour + '时 ' + rule.minute + '分');
 // logger.info('定时主动预热paths时间: ' + rule.hour + '时 ' + rule.minute + '分');
-schedule.scheduleJob(rule, function () {
-    redlock.lock(lockResource, lockTTL).then(async function (lock) {
-        timingWarmUpPaths('true');
-        redlock.on('clientError', function (err) {
-            console.error('A redis error has occurred:', err);
-        });
+//如果该进程的env属于WITH_SCHEDULE(只有1个实例运行)，则执行下面的scheduleJob
+if(process.env.WITH_SCHEDULE) {
+    schedule.scheduleJob(rule, function () {
+        try {
+            redlock.lock(lockResource, lockTTL).then(async function (lock) {
+                timingWarmUpPaths('true');
+                console.log('process.pid: ' +process.pid +', process.env.WITH_SCHEDULE: ' +process.env.WITH_SCHEDULE);
+                logger.info('process.pid: ' +process.pid +', process.env.WITH_SCHEDULE: ' +process.env.WITH_SCHEDULE);
+                console.log('run timingWarmUpPaths()...');
+                logger.info('run timingWarmUpPaths()...');
+                redlock.on('clientError', function (err) {
+                    console.error('A redis error has occurred:', err);
+                });
+            });
+        } catch (err) {
+            console.error(err);
+            logger.error(err);
+        }
     });
-});
+}
 
 //定时触发主动查询需要预热的path数据
 async function timingWarmUpPaths(flag) {
@@ -324,8 +336,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -395,8 +407,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -467,8 +479,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -541,8 +553,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -616,8 +628,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -699,8 +711,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     let queryCodeOne = codeOne;
                     let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
@@ -882,8 +894,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryGuaranteePath  from: ' + codeOne + ', to: ' + codeTwo);
                     searchGraph.queryGuaranteePath(codeOne, codeTwo, GTDepth)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
@@ -936,8 +948,8 @@ let apiHandlers = {
                 }
                 else if (codeOne != codeTwo) {
                     let now = Date.now();
-                    console.log('user: ' +user +', queryGuaranteeedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    logger.info('user: ' +user +', queryGuaranteedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    console.log('user: ' + user + ', queryGuaranteeedByPath  from: ' + codeOne + ', to: ' + codeTwo);
+                    logger.info('user: ' + user + ', queryGuaranteedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     searchGraph.queryGuaranteedByPath(codeOne, codeTwo, GTBDepth)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;

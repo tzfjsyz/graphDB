@@ -155,7 +155,7 @@ function getOutBoundNodeNum(code, depth) {
         let session = driver.session();
         // let resultPromise = session.run(`start from=node(${nodeId}) match (from)-[r:invests*..${depth-1}]->(to) return count(to)`);
         // let resultPromise = session.run(`start from=node(${nodeId}) match (from)-[r:invests*..1]->(to) return count(to)`);
-        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})-[r:invests*..1]->(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})-[r:invests*..${depth}]->(to) return count(to)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -182,7 +182,7 @@ function getInBoundNodeNum(code, depth) {
         let session = driver.session();
         // let resultPromise = session.run(`start from=node(${nodeId}) match (from)<-[r:invests*..${depth-1}]-(to) return count(to)`);
         // let resultPromise = session.run(`start from=node(${nodeId}) match (from)<-[r:invests*..1]-(to) return count(to)`);
-        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})<-[r:invests*..1]-(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})<-[r:invests*..${depth}]-(to) return count(to)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -207,7 +207,7 @@ function getInBoundNodeNum(code, depth) {
 function getGuaranteeOutBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})-[r:guarantees*..1]->(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})-[r:guarantees*..${depth}]->(to) return count(to)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -232,7 +232,7 @@ function getGuaranteeOutBoundNodeNum(code, depth) {
 function getGuaranteeInBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})<-[r:guarantees*..1]-(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: ${code}})<-[r:guarantees*..${depth}]-(to) return count(to)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -1580,12 +1580,13 @@ let searchGraph = {
                     else if (from != null && to != null) {
                         // let fromOutBoundNum = await cacheHandlers.getCache(`${from}-OutBound`);
                         // if (!fromOutBoundNum) {
+                        
                         let fromOutBoundNumStart = Date.now();
                         let retryCountOne = 0;
                         let fromOutBoundNum = 0;
                         do {
                             try {
-                                fromOutBoundNum = await getOutBoundNodeNum(from, IVDepth);                                   //获取from的outbound节点数
+                                fromOutBoundNum = await getOutBoundNodeNum(from, 2);                                   //获取from的outbound节点数, 查询2层outBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -1608,7 +1609,7 @@ let searchGraph = {
                         let toInBoundNum = 0;
                         do {
                             try {
-                                toInBoundNum = await getInBoundNodeNum(to, IVDepth);                                    //获取to的inbound节点数
+                                toInBoundNum = await getInBoundNodeNum(to, 2);                                        //获取to的inbound节点数, 查询2层inBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++;
@@ -1648,6 +1649,14 @@ let searchGraph = {
                             console.log('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
                             logger.info('fromOutBoundNum <= toInBoundNum: ' + `${fromOutBoundNum} <= ${toInBoundNum}`);
                         }
+                        
+                    //    investPathQuery = `match (from:company{ITCode2:${from}}) -[r1:invests*..2]-> (to),
+                    //                             (from:company{ITCode2:${to}}) <-[r2:invests*..2]- (to) 
+                    //                             with count(r1) as c1,count(r2) as c2
+                    //                       call apoc.case( [(c1 -c2) > 0 , "return (:company{ITCode2: ${from}})-[:invests|guarantees*..5]->(:company{ITCode2: ${to}}) as p",
+                    //                                       (c1 -c2) <= 0, "return (:company{ITCode2: ${to}})<-[:invests|guarantees*..5]-(:company{ITCode2: ${from}}) as p"],
+                    //                                       'RETURN [] as p') YIELD value
+                    //                       return value.p as p`
                         let now = 0;
                         //缓存
                         let previousValue = await cacheHandlers.getCache(cacheKey);
@@ -1758,7 +1767,7 @@ let searchGraph = {
                         let fromInBoundNum = 0;
                         do {
                             try {
-                                fromInBoundNum = await getInBoundNodeNum(from, IVBDepth);                                     //获取from的inbound节点数
+                                fromInBoundNum = await getInBoundNodeNum(from, 2);                                     //获取from的inbound节点数, 查询2层inBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -1781,7 +1790,7 @@ let searchGraph = {
                         let toOutBoundNum = 0;
                         do {
                             try {
-                                toOutBoundNum = await getOutBoundNodeNum(to, IVBDepth);                                     //获取to的outbound节点数
+                                toOutBoundNum = await getOutBoundNodeNum(to, 2);                                     //获取to的outbound节点数, 查询2层outBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++;
@@ -2144,7 +2153,7 @@ let searchGraph = {
                         let fromOutBoundNum = 0;
                         do {
                             try {
-                                fromOutBoundNum = await getOutBoundNodeNum(from, CIVDepth);                                   //获取from的outbound节点数
+                                fromOutBoundNum = await getOutBoundNodeNum(from, 1);                                   //获取from的outbound节点数, 查询1层outBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -2167,7 +2176,7 @@ let searchGraph = {
                         let toOutBoundNum = 0;
                         do {
                             try {
-                                toOutBoundNum = await getOutBoundNodeNum(to, CIVDepth);                                    //获取to的inbound节点数
+                                toOutBoundNum = await getOutBoundNodeNum(to, 1);                                     //获取to的inbound节点数, 查询1层outBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++;
@@ -2319,7 +2328,7 @@ let searchGraph = {
                         let fromInBoundNum = 0;
                         do {
                             try {
-                                fromInBoundNum = await getInBoundNodeNum(from, CIVBDepth);                                     //获取from的inbound节点数
+                                fromInBoundNum = await getInBoundNodeNum(from, 1);                                     //获取from的inbound节点数, 查询1层inBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -2341,7 +2350,7 @@ let searchGraph = {
                         let retryCountTwo = 0;
                         do {
                             try {
-                                toInBoundNum = await getInBoundNodeNum(to, CIVBDepth);                                     //获取to的outbound节点数
+                                toInBoundNum = await getInBoundNodeNum(to, 1);                                       //获取to的outbound节点数, 查询1层inBound的节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++;
@@ -2706,7 +2715,7 @@ let searchGraph = {
                         let fromOutBoundNum = 0;
                         do {
                             try {
-                                fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, GTDepth);                                   //获取from的outbound节点数
+                                fromOutBoundNum = await getGuaranteeOutBoundNodeNum(from, 1);                                   //获取from的outbound节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -2729,7 +2738,7 @@ let searchGraph = {
                         let toInBoundNum = 0;
                         do {
                             try {
-                                toInBoundNum = await getGuaranteeInBoundNodeNum(to, GTDepth);                                    //获取to的inbound节点数
+                                toInBoundNum = await getGuaranteeInBoundNodeNum(to, 1);                                       //获取to的inbound节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++
@@ -2859,7 +2868,7 @@ let searchGraph = {
                         let fromInBoundNum = 0;
                         do {
                             try {
-                                fromInBoundNum = await getGuaranteeInBoundNodeNum(from, GTBDepth);                                     //获取from的inbound节点数
+                                fromInBoundNum = await getGuaranteeInBoundNodeNum(from, 1);                                     //获取from的inbound节点数
                                 break;
                             } catch (err) {
                                 retryCountOne++;
@@ -2882,7 +2891,7 @@ let searchGraph = {
                         let toOutBoundNum = 0;
                         do {
                             try {
-                                toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, GTBDepth);                                     //获取to的outbound节点数
+                                toOutBoundNum = await getGuaranteeOutBoundNodeNum(to, 1);                                     //获取to的outbound节点数
                                 break;
                             } catch (err) {
                                 retryCountTwo++;
