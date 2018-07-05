@@ -121,3 +121,12 @@ lockInfo:
 logInfo:
   maxLogSize:
     20480000
+
+#redis发布与订阅信息
+redisPubSubInfo:
+  clientUrl:
+    - redis://:finchina@10.15.97.135:6679       #确保该redis的URL与导入程序的一致(消息发布者)
+  channelsName:
+    - 'updateDataNews'
+  subMessage:
+    - 'updateDataOver'
