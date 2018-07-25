@@ -106,6 +106,13 @@ server.route({
     handler: apiHandlers.queryCommonInvestedByPathInfo
 });
 
+//高管投资关系路径查询
+server.route({
+    method: 'GET',
+    path: '/queryExecutiveInvestPath',
+    handler: apiHandlers.queryExecutiveInvestPathInfo
+});
+
 //单个企业直接投资关系路径查询
 // server.route({
 //     method: 'GET',

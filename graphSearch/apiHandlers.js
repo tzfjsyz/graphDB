@@ -140,14 +140,14 @@ if (process.env.WITH_SCHEDULE) {
             logger.error(err);
         }
     });
-    
+
     //单进程执行subscribe
     let channels = [];
     channels = channels.concat(config.redisPubSubInfo.channelsName);
     for (let channel of channels) {
         try {
-            subClient.subscribe(channel,function () {
-                console.log('subscribe the channel: ', channel); 
+            subClient.subscribe(channel, function () {
+                console.log('subscribe the channel: ', channel);
                 logger.info('subscribe the channel: ', channel);
             });
             subClient.on('message', function (channel, message) {
@@ -158,7 +158,7 @@ if (process.env.WITH_SCHEDULE) {
                     cacheHandlers.deleteWarmUpPathsFromRedis();             //删除预热的paths
                     cacheHandlers.flushCache();                             //清除缓存
                 }
-              });
+            });
         } catch (err) {
             console.error(err);
             logger.error(err);
@@ -364,26 +364,34 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryInvestPath(queryCodeOne, queryCodeTwo, IVDepth, lowWeight, highWeight, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    // let fromIsPerson = 0;
+                    // let toIsPerson = 0;
+                    // if (codeOne.indexOf('P') >= 0) {
+                    //     fromIsPerson = 1;
+                    // }
+                    // if (codeTwo.indexOf('P') >= 0) {
+                    //     toIsPerson = 1;
+                    // }
+                    searchGraph.queryInvestPath(codeOne, codeTwo, IVDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
                         }).catch(err => {
                             return reply.response({ ok: -1, message: err.message || err });
@@ -435,29 +443,29 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryInvestedByPath(queryCodeOne, queryCodeTwo, IVBDepth, lowWeight, highWeight, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    searchGraph.queryInvestedByPath(codeOne, codeTwo, IVBDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
                                 // let totalPathNum = res.pathDetail.data.pathNum;
                                 // console.log(`from: ${codeOne} to: ${codeTwo}`+ ' queryInvestPath_totalPathNum: ' + totalPathNum);
                                 // logger.info(`from: ${codeOne} to: ${codeTwo}`+ ' queryInvestPath_totalPathNum: ' + totalPathNum);
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
                         }).catch(err => {
                             return reply.response({ ok: -1, message: err.message || err });
@@ -507,29 +515,29 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryShortestPath(queryCodeOne, queryCodeTwo, lowWeight, highWeight, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    searchGraph.queryShortestPath(codeOne, codeTwo, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryShortestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
                                 // let totalPathNum = res.pathDetail.data.pathNum;
                                 // console.log(`from: ${codeOne} to: ${codeTwo}`+ ' queryInvestPath_totalPathNum: ' + totalPathNum);
                                 // logger.info(`from: ${codeOne} to: ${codeTwo}`+ ' queryInvestPath_totalPathNum: ' + totalPathNum);
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
                         }).catch(err => {
                             return reply.response({ ok: -1, message: err.message || err });
@@ -581,29 +589,29 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryFullPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryfullPath(queryCodeOne, queryCodeTwo, FUDepth, lowWeight, highWeight, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    searchGraph.queryfullPath(codeOne, codeTwo, FUDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryFullPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
                                 // let totalPathNum = res.pathDetail.data.pathNum;
                                 // console.log(`from: ${codeOne} to: ${codeTwo}`+ ' queryFullPath_totalPathNum: ' + totalPathNum);
                                 // logger.info(`from: ${codeOne} to: ${codeTwo}`+ ' queryFullPath_totalPathNum: ' + totalPathNum);
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
 
                         }).catch(err => {
@@ -656,29 +664,29 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryCommonInvestPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryCommonInvestPath(queryCodeOne, queryCodeTwo, CIVDepth, lowWeight, highWeight, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    searchGraph.queryCommonInvestPath(codeOne, codeTwo, CIVDepth, lowWeight, highWeight, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
                                 // let totalPathNum = res.pathDetail.data.pathNum;
                                 // console.log(`from: ${codeOne} to: ${codeTwo}`+ ' queryCommonInvestPath_totalPathNum: ' + totalPathNum);
                                 // logger.info(`from: ${codeOne} to: ${codeTwo}`+ ' queryCommonInvestPath_totalPathNum: ' + totalPathNum);
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
 
                         }).catch(err => {
@@ -739,29 +747,29 @@ let apiHandlers = {
                     let now = Date.now();
                     console.log('user: ' + user + ', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
                     logger.info('user: ' + user + ', queryCommonInvestedByPath  from: ' + codeOne + ', to: ' + codeTwo);
-                    let queryCodeOne = codeOne;
-                    let queryCodeTwo = codeTwo;
+                    // let queryCodeOne = codeOne;
+                    // let queryCodeTwo = codeTwo;
                     //判断codeOne、codeTwo是否自然人的personalCode
-                    if (codeOne.slice(0, 1) == 'P') {
-                        queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
-                    }
-                    if (codeTwo.slice(0, 1) == 'P') {
-                        queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
-                    }
-                    searchGraph.queryCommonInvestedByPath(queryCodeOne, queryCodeTwo, CIVBDepth, lowWeight, highWeight, isExtra, pathType)
+                    // if (codeOne.slice(0, 1) == 'P') {
+                    //     queryCodeOne = parseInt(codeOne.replace(/P/g, ''));
+                    // }
+                    // if (codeTwo.slice(0, 1) == 'P') {
+                    //     queryCodeTwo = parseInt(codeTwo.replace(/P/g, ''));
+                    // }
+                    searchGraph.queryCommonInvestedByPath(codeOne, codeTwo, CIVBDepth, lowWeight, highWeight, isExtra, pathType)
                         .then(res => {
                             let totalQueryCost = Date.now() - now;
                             logger.info(`user: ${user}, from: ${codeOne} to: ${codeTwo}` + " queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
                             console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ` user: ${user}, from: ${codeOne} to: ${codeTwo}` + ", queryCommonInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                             if (!res) {
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!" } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: "no results!", pathTypeTwo: "no results!", pathTypeThree: "no results!" } });
                             }
                             else if (res) {
                                 // let totalPathNum = res.pathDetail.data.pathNum;
                                 // console.log(`from: ${codeOne} to: ${codeTwo}`+ ' queryCommonInvestedByPath_totalPathNum: ' + totalPathNum);
                                 // logger.info(`from: ${codeOne} to: ${codeTwo}`+ ' queryCommonInvestedByPath_totalPathNum: ' + totalPathNum);
-                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail } });
+                                return reply.response({ direction: { from: codeOne, to: codeTwo }, results: { pathTypeOne: res.nodeResultOne.pathDetail, pathTypeTwo: res.nodeResultTwo.pathDetail, pathTypeThree: res.nodeResultThree.pathDetail } });
                             }
 
                         }).catch(err => {
@@ -793,112 +801,44 @@ let apiHandlers = {
         }
     },
 
-    //单个企业直接投资关系路径查询
-    // queryDirectInvestPathInfo: async function (request, reply) {
-    //     let code = request.query.code;
-    //     let DIDepth = request.query.directInvestPathDepth;
-    //     let lowWeight = request.query.lowWeight;                           //最低投资比例
-    //     let highWeight = request.query.highWeight;                         //最高投资比例
-    //     let lowFund = request.query.lowFund;                               //最低注册资金
-    //     let highFund = request.query.highFund;                             //最高注册资金
-    //     if (lowWeight) lowWeight = parseFloat(lowWeight);
-    //     if (highWeight) highWeight = parseFloat(highWeight);
-    //     if (lowFund) lowFund = parseFloat(lowFund);
-    //     if (highFund) highFund = parseFloat(highFund);
-    //     if (!lowWeight) lowWeight = 0;                                     //默认最低投资比例为0
-    //     if (!highWeight) highWeight = 100;                                 //默认最高投资比例为100
-    //     if (!DIDepth) DIDepth = config.pathDepth.DIDepth;
-    //     try {
-    //         if (lowWeight && highWeight && lowWeight > highWeight) {
-    //             return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
-    //         }
-    //         if (lowFund && highFund && lowFund > highFund) {
-    //             return reply.response({ ok: -1, message: 'highFund must >= lowFund!' });
-    //         }
-    //         let res = null;
-    //         if (code) {
-    //             let now = Date.now();
-    //             console.log('queryDirectInvestPath  code: ' + code);
-    //             logger.info('queryDirectInvestPath  code: ' + code);
-    //             searchGraph.queryDirectInvestPath(code, DIDepth, lowWeight, highWeight, lowFund, highFund)
-    //                 .then(res => {
-    //                     let totalQueryCost = Date.now() - now;
-    //                     logger.info("queryDirectInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
-    //                     console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ", queryDirectInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+    
+    //高管投资关系路径查询
+    queryExecutiveInvestPathInfo: async function (request, reply) {
+        let code = request.query.personalCode;
+        try {
+            let res = null;
+            if (code.indexOf('P') < 0) {
+                return reply.response({ ok: -1, message: 'input code is not the personalCode, please check it!' });
+            }
+            else if (code.indexOf('P') >= 0) {
+                let now = Date.now();
+                console.log('queryExecutiveInvestPath  code: ' + code);
+                logger.info('queryExecutiveInvestPath  code: ' + code);
+                searchGraph.queryExecutiveInvestPath(code)
+                    .then(res => {
+                        let totalQueryCost = Date.now() - now;
+                        logger.info("queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                        console.log("time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ", queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
-    //                     if (!res) {
-    //                         return reply.response({ code: code, results: "no results!" });
-    //                     }
-    //                     else if (res) {
-    //                         let totalPathNum = res.pathDetail.data.pathNum;
-    //                         console.log('queryDirectInvestPath_totalPathNum: ' + totalPathNum);
-    //                         logger.info('queryDirectInvestPath_totalPathNum: ' + totalPathNum);
-    //                         return reply.response({ code: code, results: res.pathDetail });
-    //                     }
-    //                 }).catch(err => {
-    //                     return reply.response({ ok: -1, message: err.message || err });
-    //                 });
-    //         } else if (!code) {
-    //             return reply.response(errorResp(errorCode.ARG_ERROR, `缺少code参数!`));
-    //         }
-    //     } catch (err) {
-    //         return reply.response(err);
-    //     }
-    // },
-
-    // //单个企业直接被投资关系路径查询
-    // queryDirectInvestedByPathInfo: async function (request, reply) {
-    //     let code = request.query.code;
-    //     let DIBDepth = request.query.directInvestedByPathDepth;
-    //     let lowWeight = request.query.lowWeight;                           //最低投资比例
-    //     let highWeight = request.query.highWeight;                         //最高投资比例
-    //     let lowFund = request.query.lowFund;                               //最低注册资金
-    //     let highFund = request.query.highFund;                             //最高注册资金
-    //     if (lowWeight) lowWeight = parseFloat(lowWeight);
-    //     if (highWeight) highWeight = parseFloat(highWeight);
-    //     if (lowFund) lowFund = parseFloat(lowFund);
-    //     if (highFund) highFund = parseFloat(highFund);
-    //     if (!lowWeight) lowWeight = 0;                                     //默认最低投资比例为0
-    //     if (!highWeight) highWeight = 100;                                 //默认最高投资比例为100
-    //     if (!DIBDepth) DIBDepth = config.pathDepth.DIBDepth;
-    //     try {
-    //         if (lowWeight && highWeight && lowWeight > highWeight) {
-    //             return reply.response({ ok: -1, message: 'highWeight must >= lowWeight!' });
-    //         }
-    //         if (lowFund && highFund && lowFund > highFund) {
-    //             return reply.response({ ok: -1, message: 'highFund must >= lowFund!' });
-    //         }
-    //         let res = null;
-    //         if (code) {
-    //             let now = Date.now();
-    //             console.log('queryDirectInvestedByPath  code: ' + code);
-    //             logger.info('queryDirectInvestedByPath  code: ' + code);
-    //             searchGraph.queryDirectInvestedByPath(code, DIBDepth, lowWeight, highWeight, lowFund, highFund)
-    //                 .then(res => {
-    //                     let totalQueryCost = Date.now() - now;
-    //                     logger.info("queryDirectInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
-    //                     console.log("Time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ", queryDirectInvestedByPath_totalQueryCost: " + totalQueryCost + 'ms');
-
-    //                     if (!res) {
-    //                         return reply.response({ code: code, results: "no results!" });
-    //                     }
-    //                     else if (res) {
-    //                         let totalPathNum = res.pathDetail.data.pathNum;
-    //                         console.log('queryDirectInvestPath_totalPathNum: ' + totalPathNum);
-    //                         logger.info('queryDirectInvestPath_totalPathNum: ' + totalPathNum);
-    //                         return reply.response({ code: code, results: res.pathDetail });
-    //                     }
-    //                 }).catch(err => {
-    //                     return reply.response({ ok: -1, message: err.message || err });
-    //                 });
-    //         } else if (!code) {
-    //             return reply.response(errorResp(errorCode.ARG_ERROR, `缺少code参数!`));
-    //         }
-
-    //     } catch (err) {
-    //         return reply.response(err);
-    //     }
-    // },
+                        if (!res) {
+                            return reply.response({ code: code, results: "no results!" });
+                        }
+                        else if (res) {
+                            let totalPathNum = res.data.pathNum;
+                            console.log('queryExecutiveInvestPath_totalPathNum: ' + totalPathNum);
+                            logger.info('queryExecutiveInvestPath_totalPathNum: ' + totalPathNum);
+                            return reply.response({ code: code, results: res });
+                        }
+                    }).catch(err => {
+                        return reply.response({ ok: -1, message: err.message || err });
+                    });
+            } else if (!code) {
+                return reply.response(errorResp(errorCode.ARG_ERROR, `缺少code参数!`));
+            }
+        } catch (err) {
+            return reply.response(err);
+        }
+    },
 
     //担保关系路径
     queryGuaranteePathInfo: async function (request, reply) {
