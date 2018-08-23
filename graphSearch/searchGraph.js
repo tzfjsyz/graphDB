@@ -153,9 +153,8 @@ function findNodeId(code) {
 function getOutBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        // let resultPromise = session.run(`start from=node(${nodeId}) match (from)-[r:invests*..${depth-1}]->(to) return count(to)`);
-        // let resultPromise = session.run(`start from=node(${nodeId}) match (from)-[r:invests*..1]->(to) return count(to)`);
-        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:invests*..${depth}]->(to) return count(to)`);
+        // let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:invests*..${depth}]->(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:invests*..${depth}]->() return count(r)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -180,9 +179,8 @@ function getOutBoundNodeNum(code, depth) {
 function getInBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        // let resultPromise = session.run(`start from=node(${nodeId}) match (from)<-[r:invests*..${depth-1}]-(to) return count(to)`);
-        // let resultPromise = session.run(`start from=node(${nodeId}) match (from)<-[r:invests*..1]-(to) return count(to)`);
-        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:invests*..${depth}]-(to) return count(to)`);
+        // let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:invests*..${depth}]-(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:invests*..${depth}]-() return count(r)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -207,7 +205,8 @@ function getInBoundNodeNum(code, depth) {
 function getGuaranteeOutBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:guarantees*..${depth}]->(to) return count(to)`);
+        // let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:guarantees*..${depth}]->(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})-[r:guarantees*..${depth}]->() return count(r)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -232,7 +231,8 @@ function getGuaranteeOutBoundNodeNum(code, depth) {
 function getGuaranteeInBoundNodeNum(code, depth) {
     return new Promise(async (resolve, reject) => {
         let session = driver.session();
-        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:guarantees*..${depth}]-(to) return count(to)`);
+        // let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:guarantees*..${depth}]-(to) return count(to)`);
+        let resultPromise = session.run(`match (from:company{ITCode2: '${code}'})<-[r:guarantees*..${depth}]-() return count(r)`);
         resultPromise.then(result => {
             session.close();
             if (result.records.length == 0)
@@ -323,9 +323,7 @@ function isDuplicatedPath(pathGroup, pathDetail) {
 function findCodeAppearTimes(pathDetail) {
     let sourceArray = [];
     let targetArray = [];
-    let sourceIsRepeat = false;
-    let targetIsRepeat = false;
-    let result = {};
+    let result = { sourceIsRepeat: false, targetIsRepeat: false };
     for (let subPathDetail of pathDetail) {
         let sourceCode = subPathDetail.sourceCode;
         let targetCode = subPathDetail.targetCode;
@@ -352,11 +350,21 @@ function isRepeat(array) {
 
 //判断invest path的source/target连接是否有断点, 即是否有guarantees关系连接才形成的path
 function isContinuousPath(from, to, pathArray) {
-    from = parseInt(from);
-    to = parseInt(to);
-    let flag = true;
+    let result = { flag: true, pathDetail: [] };
+    let isFromToDirection = 1; 
     let pathLength = pathArray.length;
+    let newPathArray = [];
     if (pathLength > 1) {
+        if ( (pathArray[0].targetCode == to && pathArray[0].sourceCode != from) || (pathArray[0].targetCode == from && pathArray[0].sourceCode != to) ){
+            isFromToDirection = 0
+        }
+        //如果from<-to方向的path需倒序排列
+        if (isFromToDirection == 0) {
+            for (let i = pathLength - 1; i >= 0; i--) {
+                newPathArray.push(pathArray[i]);
+            }
+            pathArray = newPathArray;
+        }
         for (let i = 0; i < pathLength - 1; i++) {
             let nextSourceCode = pathArray[i + 1].sourceCode;
             let targetCode = pathArray[i].targetCode;
@@ -364,18 +372,31 @@ function isContinuousPath(from, to, pathArray) {
             let nextTargetCode = pathArray[i + 1].targetCode;
             if (targetCode != nextSourceCode || sourceCode == nextTargetCode || targetCode == from || targetCode == to) {                     //targetCode != nextSourceCode:不连续的path;  sourceCode == nextTargetCode：闭环的path
                 console.log('该invest path不符合要求！');
-                flag = false;
+                result.flag = false;
                 break;
             }
         }
+
+        // for (let i = pathLength - 1; i >= 1; i--) {
+        //     let nextSourceCode = pathArray[i - 1].sourceCode;
+        //     let targetCode = pathArray[i].targetCode;
+        //     let sourceCode = pathArray[i].sourceCode;
+        //     let nextTargetCode = pathArray[i - 1].targetCode;
+        //     if (targetCode != nextSourceCode || sourceCode == nextTargetCode || targetCode == from || targetCode == to) {                     //targetCode != nextSourceCode:不连续的path;  sourceCode == nextTargetCode：闭环的path
+        //         console.log('该invest path不符合要求！');
+        //         flag = false;
+        //         break;
+        //     }
+        // }
     }
-    return flag;
+    result.pathDetail = pathArray;
+    return result;
 }
 
 //判断invest path的是否闭环
 function isClosedLoopPath(from, to, pathArray) {
-    from = parseInt(from);
-    to = parseInt(to);
+    // from = parseInt(from);
+    // to = parseInt(to);
     let flag = false;
     let pathLength = pathArray.length;
     if (pathLength > 1) {
@@ -394,15 +415,26 @@ function isClosedLoopPath(from, to, pathArray) {
 
 //处理neo4j返回的JSON数据格式
 async function handlerPromise(from, to, result, index) {
+    //判断from、to是否自然人的personalCode
+    let fromIsPerson = 0;
+    let toIsPerson = 0;
+    if (null != from && from.indexOf('P') >= 0) {
+        fromIsPerson = 1;
+    }
+    if (null != to && to.indexOf('P') >= 0) {
+        toIsPerson = 1;
+    }
+
     let allNamesOne = [];
-    let allCodesOne = new Set();                                    //使用set保证数据的唯一性
-    let newAllCodesOne = new Set();
-    let uniqueCodesOne = [];                                            //存储唯一性的codes数据元素
+    let allCodesOne = new Set();                                       //使用set保证数据的唯一性
+    let newAllCodesOne = new Set();                                       //含自然人
+    let newCodesOne = new Set();                                       //不含自然人
+    let uniqueCodesOne = [];                                           //存储唯一性的codes数据元素
     // let num = 0;
 
     let allNamesTwo = [];
-    let allCodesTwo = new Set();                                    //使用set保证数据的唯一性
-    let uniqueCodesTwo = [];                                            //存储唯一性的codes数据元素
+    let allCodesTwo = new Set();                                       //使用set保证数据的唯一性
+    let uniqueCodesTwo = [];                                           //存储唯一性的codes数据元素
 
     let uniqueCodesThree = new Set();
     let uniqueNamesThree = new Set();
@@ -456,465 +488,553 @@ async function handlerPromise(from, to, result, index) {
         let tempResultTwo = [];                                                                          //临时存放所有的担保关系路径
         let newTempResultTwo = [];                                                                       //筛选后的担保关系路径
         let tempResultThree = [];                                                                        //存放家族关系路径
+        let newTempResultThree = [];
+
         for (let subRecord of result.records) {
-            let pathArrayOne = {};
-            let tempPathArrayOne = [];
-            let pathArrayTwo = {};
-            let tempPathArrayTwo = [];
-            let pathArrayThree = {};
-            let tempPathArrayThree = [];
-            let pathArrayFour = {};
-            let tempPathArrayFour = [];
-            let pathOneCodeSet = new Set();                                                              //存放pathOne中所有的ITCode2
+            // let pathArrayOne = {};
+            // let tempPathArrayOne = [];
+            // let pathArrayTwo = {};
+            // let tempPathArrayTwo = [];
+            // let pathArrayThree = {};
+            // let tempPathArrayThree = [];
+            // let pathArrayFour = {};
+            // let tempPathArrayFour = [];
+            let pathOneCodeSet = new Set();                                                              //存放pathOne中所有的ITCode2(除自然人)
 
             for (let subField of subRecord._fields) {
+                let pathArrayOne = {};
+                let pathArrayTwo = {};
+                let pathArrayThree = {};
+                let pathArrayFour = {};
 
-                for (let subSegment of subField.segments) {
+                let tempPathArrayOne = [];
+                let tempPathArrayTwo = [];
+                let tempPathArrayThree = [];
+                let tempPathArrayFour = [];
 
-                    //取到start nodes的isPerson属性
-                    let startIsPerson = null;
-                    if (null != subSegment.start.properties.isPerson) {
-                        startIsPerson = subSegment.start.properties.isPerson;
-                    }
-                    else if (null == subSegment.start.properties.isPerson && null != subSegment.start.properties.isPerson.low) {
-                        startIsPerson = subSegment.start.properties.isPerson.low;
-                    }
+                if (null != subField) {
+                    for (let subSegment of subField.segments) {
 
-                    //取到end nodes的isPerson属性
-                    let endIsPerson = null;
-                    if (null != subSegment.end.properties.isPerson) {
-                        endIsPerson = subSegment.end.properties.isPerson;
-                    }
-                    else if (null == subSegment.end.properties.isPerson && null != subSegment.end.properties.isPerson.low) {
-                        endIsPerson = subSegment.end.properties.isPerson.low;
-                    }
-
-                    //通过isPerson为ITCode2取值
-                    let startSegmentCode = null;
-                    let endSegmentCode = null;
-                    // if (startIsPerson == '1' || startIsPerson == 1) {
-                    //     let id = subSegment.start.properties.ITCode2.low;
-                    //     startSegmentCode = 'P' + pad(id, 9);
-                    // } else {
-                    //     startSegmentCode = subSegment.start.properties.ITCode2.low;
-                    // }
-                    // if (endIsPerson == '1' || endIsPerson == 1) {
-                    //     let id = subSegment.end.properties.ITCode2.low;
-                    //     endSegmentCode = 'P' + pad(id, 9);
-                    // } else {
-                    //     endSegmentCode = subSegment.end.properties.ITCode2.low;
-                    // }
-                    if (null != subSegment.start.properties.ITCode2) {
-                        startSegmentCode = subSegment.start.properties.ITCode2;
-                    }
-                    else if (null == subSegment.start.properties.ITCode2 && null != subSegment.start.properties.ITCode2.low) {
-                        startSegmentCode = subSegment.start.properties.ITCode2.low;
-                    }
-                    if (null != subSegment.end.properties.ITCode2) {
-                        endSegmentCode = subSegment.end.properties.ITCode2;
-                    }
-                    else if (null == subSegment.end.properties.ITCode2 && null != subSegment.end.properties.ITCode2.low) {
-                        endSegmentCode = subSegment.end.properties.ITCode2.low;
-                    }
-
-                    // allNames.push(subSegment.start.properties.ITName, subSegment.end.properties.ITName);
-                    // allCodes.push(subSegment.start.properties.ITCode2, subSegment.end.properties.ITCode2);
-                    let startSegmentLow = subSegment.start.identity.low;
-                    let relSegmentStartLow = subSegment.relationship.start.low;
-                    let startRegFund = 0;                                                                  //注册资金
-                    if (startIsPerson == 0 || startIsPerson == '0') {
-                        if (null != subSegment.start.properties.RMBFund) {
-                            startRegFund = subSegment.start.properties.RMBFund;
+                        //取到start nodes的isPerson属性
+                        let startIsPerson = null;
+                        if (null != subSegment.start.properties.isPerson) {
+                            startIsPerson = subSegment.start.properties.isPerson;
                         }
-                        else if (null == subSegment.start.properties.RMBFund && null != subSegment.start.properties.RMBFund.low) {
-                            startRegFund = subSegment.start.properties.RMBFund.low;
+                        else if (null == subSegment.start.properties.isPerson && null != subSegment.start.properties.isPerson.low) {
+                            startIsPerson = subSegment.start.properties.isPerson.low;
                         }
-                        startRegFund = parseFloat(startRegFund.toFixed(2));                            //将RegFund值转换2位小数              
-                    }
-
-                    let relSegmentEndLow = subSegment.relationship.end.low;
-
-                    //获取每个path relationship type
-                    let relationshipType = null;
-                    if (Object.keys(subSegment.relationship.type).length > 0) {
-                        if (null != subSegment.relationship.type) {
-                            relationshipType = subSegment.relationship.type;
+    
+                        //取到end nodes的isPerson属性
+                        let endIsPerson = null;
+                        if (null != subSegment.end.properties.isPerson) {
+                            endIsPerson = subSegment.end.properties.isPerson;
                         }
-                        else if (null == subSegment.relationship.type && null != subSegment.relationship.type.low) {
-                            relationshipType = subSegment.relationship.type.low;
+                        else if (null == subSegment.end.properties.isPerson && null != subSegment.end.properties.isPerson.low) {
+                            endIsPerson = subSegment.end.properties.isPerson.low;
                         }
-                    }
-                    //如果weight是全量导入的，直接取weight的值；如果weight是增量导入的，需要取到weight节点下的low值
-                    let weight = 0;                                                                    //持股比例
-                    let relCode = 0;                                                                   //家族关系代码
-                    let relName = null;                                                                //家族关系名称
-                    if (Object.keys(subSegment.relationship.properties).length > 0) {
-                        if (relationshipType != 'family') {
-                            if (null != subSegment.relationship.properties.weight) {
-                                weight = subSegment.relationship.properties.weight;
+    
+                        //通过isPerson为ITCode2取值
+                        let startSegmentCode = null;
+                        let endSegmentCode = null;
+                        // if (startIsPerson == '1' || startIsPerson == 1) {
+                        //     let id = subSegment.start.properties.ITCode2.low;
+                        //     startSegmentCode = 'P' + pad(id, 9);
+                        // } else {
+                        //     startSegmentCode = subSegment.start.properties.ITCode2.low;
+                        // }
+                        // if (endIsPerson == '1' || endIsPerson == 1) {
+                        //     let id = subSegment.end.properties.ITCode2.low;
+                        //     endSegmentCode = 'P' + pad(id, 9);
+                        // } else {
+                        //     endSegmentCode = subSegment.end.properties.ITCode2.low;
+                        // }
+                        if (null != subSegment.start.properties.ITCode2) {
+                            startSegmentCode = subSegment.start.properties.ITCode2;
+                        }
+                        else if (null == subSegment.start.properties.ITCode2 && null != subSegment.start.properties.ITCode2.low) {
+                            startSegmentCode = subSegment.start.properties.ITCode2.low;
+                        }
+                        if (null != subSegment.end.properties.ITCode2) {
+                            endSegmentCode = subSegment.end.properties.ITCode2;
+                        }
+                        else if (null == subSegment.end.properties.ITCode2 && null != subSegment.end.properties.ITCode2.low) {
+                            endSegmentCode = subSegment.end.properties.ITCode2.low;
+                        }
+    
+                        // allNames.push(subSegment.start.properties.ITName, subSegment.end.properties.ITName);
+                        // allCodes.push(subSegment.start.properties.ITCode2, subSegment.end.properties.ITCode2);
+                        let startSegmentLow = subSegment.start.identity.low;
+                        let relSegmentStartLow = subSegment.relationship.start.low;
+                        let startRegFund = 0;                                                                  //注册资金
+                        if (startIsPerson == 0 || startIsPerson == '0') {
+                            if (null != subSegment.start.properties.RMBFund) {
+                                startRegFund = subSegment.start.properties.RMBFund;
                             }
-                            else if (null == subSegment.relationship.properties.weight && null != subSegment.relationship.properties.weight.low) {
-                                weight = subSegment.relationship.properties.weight.low;
+                            else if (null == subSegment.start.properties.RMBFund && null != subSegment.start.properties.RMBFund.low) {
+                                startRegFund = subSegment.start.properties.RMBFund.low;
                             }
-                            weight = parseFloat(weight.toFixed(2));                                        //将weight值转换2位小数
+                            startRegFund = parseFloat(startRegFund.toFixed(2));                            //将RegFund值转换2位小数              
+                        }
+    
+                        let relSegmentEndLow = subSegment.relationship.end.low;
+    
+                        //获取每个path relationship type
+                        let relationshipType = null;
+                        if (Object.keys(subSegment.relationship.type).length > 0) {
+                            if (null != subSegment.relationship.type) {
+                                relationshipType = subSegment.relationship.type;
+                            }
+                            else if (null == subSegment.relationship.type && null != subSegment.relationship.type.low) {
+                                relationshipType = subSegment.relationship.type.low;
+                            }
+                        }
+                        //如果weight是全量导入的，直接取weight的值；如果weight是增量导入的，需要取到weight节点下的low值
+                        let weight = 0;                                                                    //持股比例
+                        let relCode = 0;                                                                   //家族关系代码
+                        let relName = null;                                                                //家族关系名称
+                        if (Object.keys(subSegment.relationship.properties).length > 0) {
+                            if (relationshipType != 'family') {
+                                if (null != subSegment.relationship.properties.weight) {
+                                    weight = subSegment.relationship.properties.weight;
+                                }
+                                else if (null == subSegment.relationship.properties.weight && null != subSegment.relationship.properties.weight.low) {
+                                    weight = subSegment.relationship.properties.weight.low;
+                                }
+                                weight = parseFloat(weight.toFixed(2));                                        //将weight值转换2位小数
+                            }
+                            else if (relationshipType == 'family') {
+                                if (null != subSegment.relationship.properties.relationCode.low) {
+                                    relCode = subSegment.relationship.properties.relationCode.low;
+                                }
+                                else if (null == subSegment.relationship.properties.relationCode.low && null != subSegment.relationship.properties.relationCode) {
+                                    relCode = subSegment.relationship.properties.relationCode;
+                                }
+                                if (null != subSegment.relationship.properties.relationName) {
+                                    relName = subSegment.relationship.properties.relationName;
+                                }
+                                else if (null == subSegment.relationship.properties.relationName && null != subSegment.relationship.properties.relationName.low) {
+                                    relName = subSegment.relationship.properties.relationName.low;
+                                }
+                            }
+                        }
+    
+                        let endSegmentLow = subSegment.end.identity.low;
+                        // let endSegmentName = subSegment.end.properties.ITName;
+                        // let endSegmentCode = subSegment.end.properties.ITCode2.low;
+                        // let endSegmentCode = subSegment.end.properties.ITCode2;
+                        let endRegFund = 0;                                                               //注册资金
+                        if (endIsPerson == 0 || endIsPerson == '0') {
+                            if (null != subSegment.end.properties.RMBFund) {
+                                endRegFund = subSegment.end.properties.RMBFund;
+                            }
+                            else if (null == subSegment.end.properties.RMBFund && null != subSegment.end.properties.RMBFund.low) {
+                                endRegFund = subSegment.start.properties.RMBFund.low;
+                            }
+                            endRegFund = parseFloat(endRegFund.toFixed(2));                               //将RegFund值转换2位小数    
+                        }
+    
+                        // let startSegmentName = await queryCodeToName(startSegmentCode);                 //不直接获取eno4j中的ITName，而是通过外部接口由ITCode2获取ITName
+                        // let endSegmentName = await queryCodeToName(endSegmentCode);
+                        // allNames.push(startSegmentName, endSegmentName);
+                        // allCodes.push(`${startSegmentCode}`, `${endSegmentCode}`);
+    
+                        //处理无机构代码的start nodes的name问题
+                        let startSegmentName = null;
+                        //取到start nodes的isExtra属性
+                        let startIsExtra = null;
+                        if (null != subSegment.start.properties.isExtra) {
+                            startIsExtra = subSegment.start.properties.isExtra;
+                        }
+                        else if (null == subSegment.start.properties.isExtra && null != subSegment.start.properties.isExtra.low) {
+                            startIsExtra = subSegment.start.properties.isExtra.low;
+                        }
+                        if (startIsExtra == 1 || startIsExtra == '1' || startIsExtra == 'null') {
+                            startSegmentName = subSegment.start.properties.name;
+                        }
+                        else if (startIsExtra == 0 || startIsExtra == '0') {
+                            startSegmentName = null;
+                            // allCodes.push(`${startSegmentCode}`);                                                               //将有机构代码的ITCode存入数组
+                            // allCodes.add(`${startSegmentCode}`);
+    
+                            // if (relationshipType == 'invests' || !relationshipType) {
+                            //     allCodesOne.add(`${startSegmentCode}`);
+                            //     // subFieldCodesOne.add(endSegmentCode);   
+                            // }
+                            // if (relationshipType == 'guarantees') {
+                            //     allCodesTwo.add(`${startSegmentCode}`);
+                            // subFieldCodesTwo.add(endSegmentCode);
+                            // }
+                        }
+    
+                        //处理无机构代码的end nodes的name问题
+                        let endSegmentName = null;
+                        //取到end nodes的isExtra属性
+                        let endIsExtra = null;
+                        if (null != subSegment.end.properties.isExtra) {
+                            endIsExtra = subSegment.end.properties.isExtra;
+                        }
+                        else if (null == subSegment.end.properties.isExtra && null != subSegment.end.properties.isExtra.low) {
+                            endIsExtra = subSegment.end.properties.isExtra.low;
+                        }
+                        if (endIsExtra == 1 || endIsExtra == '1' || endIsExtra == 'null') {
+                            endSegmentName = subSegment.end.properties.name;
+                        }
+                        else if (endIsExtra == 0 || endIsExtra == '0') {
+                            endSegmentName = null;
+                            // allCodes.push(`${endSegmentCode}`);                                                                   //将有机构代码的ITCode存入数组
+                            // allCodes.add(`${endSegmentCode}`);
+    
+                            // if (relationshipType == 'invests' || !relationshipType) {
+                            //     // subFieldCodesOne.add(startSegmentCode);
+                            //     allCodesOne.add(`${endSegmentCode}`);
+                            // }
+                            // if (relationshipType == 'guarantees') {
+                            // subFieldCodesTwo.add(startSegmentCode);
+                            //     allCodesTwo.add(`${endSegmentCode}`);
+                            // }
+                        }
+    
+                        let pathOne = {                                                                               //invests的path
+                            source: null, sourceCode: null, sourceRegFund: null, sourceIsExtra: null, sourceIsPerson: null,
+                            target: null, targetCode: null, targetRegFund: null, targetIsExtra: null, targetIsPerson: null, weight: null
+                        };
+                        let pathTwo = {                                                                               //guarantees的path
+                            source: null, sourceCode: null, sourceRegFund: null, sourceIsExtra: null, sourceIsPerson: null,
+                            target: null, targetCode: null, targetRegFund: null, targetIsExtra: null, targetIsPerson: null, weight: null
+                        };
+                        let pathThree = {                                                                             //family的path
+                            source: null, sourceCode: null, sourceIsExtra: null, sourceIsPerson: null,
+                            target: null, targetCode: null, targetIsExtra: null, targetIsPerson: null, relationCode: null, relationName: null
+                        };
+                        let pathFour = {                                                                             //executes的path
+                            compCode: null, compName: null, RMBRegFund: null, isExtra: null, isPerson: null
+                        };
+    
+                        if (relationshipType == 'invests' || !relationshipType) {
+                            if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
+                                pathOne.source = startSegmentName;
+                                pathOne.sourceCode = startSegmentCode;
+                                pathOne.sourceRegFund = startRegFund;
+                                pathOne.sourceIsExtra = startIsExtra;
+                                pathOne.sourceIsPerson = startIsPerson;
+                                pathOne.target = endSegmentName;
+                                pathOne.targetCode = endSegmentCode;
+                                pathOne.targetRegFund = endRegFund;
+                                pathOne.targetIsExtra = endIsExtra;
+                                pathOne.targetIsPerson = endIsPerson;
+                                pathOne.weight = weight;
+                                // pathOne.pathType = relationshipType;
+    
+                                //如果isPerson = true 过滤掉
+                                if (startIsPerson != 1 || startIsPerson != '1') {
+                                    pathOneCodeSet.add(`${startSegmentCode}`);
+                                }
+                                if (endIsPerson != 1 || endIsPerson != '1') {
+                                    pathOneCodeSet.add(`${endSegmentCode}`);
+                                }
+                            }
+                            else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
+                                pathOne.source = endSegmentName;
+                                pathOne.sourceCode = endSegmentCode;
+                                pathOne.sourceRegFund = endRegFund;
+                                pathOne.sourceIsExtra = endIsExtra;
+                                pathOne.sourceIsPerson = endIsPerson;
+                                pathOne.target = startSegmentName;
+                                pathOne.targetCode = startSegmentCode;
+                                pathOne.targetRegFund = startRegFund;
+                                pathOne.targetIsExtra = startIsExtra;
+                                pathOne.targetIsPerson = startIsPerson;
+                                pathOne.weight = weight;
+                                // pathOne.pathType = relationshipType;
+    
+                                //如果isPerson = true 过滤掉
+                                if (startIsPerson != 1 || startIsPerson != '1') {
+                                    pathOneCodeSet.add(`${startSegmentCode}`);
+                                }
+                                if (endIsPerson != 1 || endIsPerson != '1') {
+                                    pathOneCodeSet.add(`${endSegmentCode}`);
+                                }
+                            }
+                        }
+                        else if (relationshipType == 'guarantees') {
+                            if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
+                                pathTwo.source = startSegmentName;
+                                pathTwo.sourceCode = startSegmentCode;
+                                pathTwo.sourceRegFund = startRegFund;
+                                pathTwo.sourceIsExtra = startIsExtra;
+                                pathTwo.sourceIsPerson = startIsPerson;
+                                pathTwo.target = endSegmentName;
+                                pathTwo.targetCode = endSegmentCode;
+                                pathTwo.targetRegFund = endRegFund;
+                                pathTwo.targetIsExtra = endIsExtra;
+                                pathTwo.targetIsPerson = endIsPerson;
+                                pathTwo.weight = weight;
+                                // pathTwo.pathType = relationshipType;
+    
+                            }
+                            else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
+                                pathTwo.source = endSegmentName;
+                                pathTwo.sourceCode = endSegmentCode;
+                                pathTwo.sourceRegFund = endRegFund;
+                                pathTwo.sourceIsExtra = endIsExtra;
+                                pathTwo.sourceIsPerson = endIsPerson;
+                                pathTwo.target = startSegmentName;
+                                pathTwo.targetCode = startSegmentCode;
+                                pathTwo.targetRegFund = startRegFund;
+                                pathTwo.targetIsExtra = startIsExtra;
+                                pathTwo.targetIsPerson = startIsPerson;
+                                pathTwo.weight = weight;
+                                // pathTwo.pathType = relationshipType;
+    
+                            }
                         }
                         else if (relationshipType == 'family') {
-                            if (null != subSegment.relationship.properties.relationCode.low) {
-                                relCode = subSegment.relationship.properties.relationCode.low;
+                            if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
+                                pathThree.source = startSegmentName;
+                                pathThree.sourceCode = startSegmentCode;
+                                pathThree.sourceIsExtra = startIsExtra;
+                                pathThree.sourceIsPerson = startIsPerson;
+                                pathThree.target = endSegmentName;
+                                pathThree.targetCode = endSegmentCode;
+                                pathThree.targetIsExtra = endIsExtra;
+                                pathThree.targetIsPerson = endIsPerson;
+                                pathThree.relationCode = relCode;
+                                pathThree.relationName = relName;
+                                // pathTwo.pathType = relationshipType;
+                                // uniqueCodesThree.add(startSegmentCode);
+                                // uniqueCodesThree.add(endSegmentCode);
+                                // uniqueNamesThree.add(startSegmentName);
+                                // uniqueNamesThree.add(endSegmentName);
+    
                             }
-                            else if (null == subSegment.relationship.properties.relationCode.low && null != subSegment.relationship.properties.relationCode) {
-                                relCode = subSegment.relationship.properties.relationCode;
-                            }
-                            if (null != subSegment.relationship.properties.relationName) {
-                                relName = subSegment.relationship.properties.relationName;
-                            }
-                            else if (null == subSegment.relationship.properties.relationName && null != subSegment.relationship.properties.relationName.low) {
-                                relName = subSegment.relationship.properties.relationName.low;
-                            }
-                        }
-                    }
-
-                    let endSegmentLow = subSegment.end.identity.low;
-                    // let endSegmentName = subSegment.end.properties.ITName;
-                    // let endSegmentCode = subSegment.end.properties.ITCode2.low;
-                    // let endSegmentCode = subSegment.end.properties.ITCode2;
-                    let endRegFund = 0;                                                               //注册资金
-                    if (endIsPerson == 0 || endIsPerson == '0') {
-                        if (null != subSegment.end.properties.RMBFund) {
-                            endRegFund = subSegment.end.properties.RMBFund;
-                        }
-                        else if (null == subSegment.end.properties.RMBFund && null != subSegment.end.properties.RMBFund.low) {
-                            endRegFund = subSegment.start.properties.RMBFund.low;
-                        }
-                        endRegFund = parseFloat(endRegFund.toFixed(2));                               //将RegFund值转换2位小数    
-                    }
-
-                    // let startSegmentName = await queryCodeToName(startSegmentCode);                 //不直接获取eno4j中的ITName，而是通过外部接口由ITCode2获取ITName
-                    // let endSegmentName = await queryCodeToName(endSegmentCode);
-                    // allNames.push(startSegmentName, endSegmentName);
-                    // allCodes.push(`${startSegmentCode}`, `${endSegmentCode}`);
-
-                    //处理无机构代码的start nodes的name问题
-                    let startSegmentName = null;
-                    //取到start nodes的isExtra属性
-                    let startIsExtra = null;
-                    if (null != subSegment.start.properties.isExtra) {
-                        startIsExtra = subSegment.start.properties.isExtra;
-                    }
-                    else if (null == subSegment.start.properties.isExtra && null != subSegment.start.properties.isExtra.low) {
-                        startIsExtra = subSegment.start.properties.isExtra.low;
-                    }
-                    if (startIsExtra == 1 || startIsExtra == '1' || startIsExtra == 'null') {
-                        startSegmentName = subSegment.start.properties.name;
-                    }
-                    else if (startIsExtra == 0 || startIsExtra == '0') {
-                        startSegmentName = null;
-                        // allCodes.push(`${startSegmentCode}`);                                                               //将有机构代码的ITCode存入数组
-                        // allCodes.add(`${startSegmentCode}`);
-
-                        // if (relationshipType == 'invests' || !relationshipType) {
-                        //     allCodesOne.add(`${startSegmentCode}`);
-                        //     // subFieldCodesOne.add(endSegmentCode);   
-                        // }
-                        // if (relationshipType == 'guarantees') {
-                        //     allCodesTwo.add(`${startSegmentCode}`);
-                        // subFieldCodesTwo.add(endSegmentCode);
-                        // }
-                    }
-
-                    //处理无机构代码的end nodes的name问题
-                    let endSegmentName = null;
-                    //取到end nodes的isExtra属性
-                    let endIsExtra = null;
-                    if (null != subSegment.end.properties.isExtra) {
-                        endIsExtra = subSegment.end.properties.isExtra;
-                    }
-                    else if (null == subSegment.end.properties.isExtra && null != subSegment.end.properties.isExtra.low) {
-                        endIsExtra = subSegment.end.properties.isExtra.low;
-                    }
-                    if (endIsExtra == 1 || endIsExtra == '1' || endIsExtra == 'null') {
-                        endSegmentName = subSegment.end.properties.name;
-                    }
-                    else if (endIsExtra == 0 || endIsExtra == '0') {
-                        endSegmentName = null;
-                        // allCodes.push(`${endSegmentCode}`);                                                                   //将有机构代码的ITCode存入数组
-                        // allCodes.add(`${endSegmentCode}`);
-
-                        // if (relationshipType == 'invests' || !relationshipType) {
-                        //     // subFieldCodesOne.add(startSegmentCode);
-                        //     allCodesOne.add(`${endSegmentCode}`);
-                        // }
-                        // if (relationshipType == 'guarantees') {
-                        // subFieldCodesTwo.add(startSegmentCode);
-                        //     allCodesTwo.add(`${endSegmentCode}`);
-                        // }
-                    }
-
-                    let pathOne = {                                                                               //invests的path
-                        source: null, sourceCode: null, sourceRegFund: null, sourceIsExtra: null, sourceIsPerson: null,
-                        target: null, targetCode: null, targetRegFund: null, targetIsExtra: null, targetIsPerson: null, weight: null
-                    };
-                    let pathTwo = {                                                                               //guarantees的path
-                        source: null, sourceCode: null, sourceRegFund: null, sourceIsExtra: null, sourceIsPerson: null,
-                        target: null, targetCode: null, targetRegFund: null, targetIsExtra: null, targetIsPerson: null, weight: null
-                    };
-                    let pathThree = {                                                                             //family的path
-                        source: null, sourceCode: null, sourceIsExtra: null, sourceIsPerson: null,
-                        target: null, targetCode: null, targetIsExtra: null, targetIsPerson: null, relationCode: null, relationName: null
-                    };
-                    let pathFour = {                                                                             //executes的path
-                        compCode: null, compName: null, RMBRegFund: null, isExtra: null, isPerson: null
-                    };
-
-                    if (relationshipType == 'invests' || !relationshipType) {
-                        if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
-                            pathOne.source = startSegmentName;
-                            pathOne.sourceCode = startSegmentCode;
-                            pathOne.sourceRegFund = startRegFund;
-                            pathOne.sourceIsExtra = startIsExtra;
-                            pathOne.sourceIsPerson = startIsPerson;
-                            pathOne.target = endSegmentName;
-                            pathOne.targetCode = endSegmentCode;
-                            pathOne.targetRegFund = endRegFund;
-                            pathOne.targetIsExtra = endIsExtra;
-                            pathOne.targetIsPerson = endIsPerson;
-                            pathOne.weight = weight;
-                            // pathOne.pathType = relationshipType;
-
-                            //如果isPerson = true 过滤掉
-                            if (startIsPerson != 1 || startIsPerson != '1') {
-                                pathOneCodeSet.add(`${startSegmentCode}`);
-                            }
-                            if (endIsPerson != 1 || endIsPerson != '1') {
-                                pathOneCodeSet.add(`${endSegmentCode}`);
+                            else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
+                                pathThree.source = endSegmentName;
+                                pathThree.sourceCode = endSegmentCode;
+                                pathThree.sourceIsExtra = endIsExtra;
+                                pathThree.sourceIsPerson = endIsPerson;
+                                pathThree.target = startSegmentName;
+                                pathThree.targetCode = startSegmentCode;
+                                pathThree.targetIsExtra = startIsExtra;
+                                pathThree.targetIsPerson = startIsPerson;
+                                pathThree.relationCode = relCode;
+                                pathThree.relationName = relName;
+                                // pathTwo.pathType = relationshipType;
+                                // uniqueCodesThree.add(startSegmentCode);
+                                // uniqueCodesThree.add(endSegmentCode);
+                                // uniqueNamesThree.add(startSegmentName);
+                                // uniqueNamesThree.add(endSegmentName);
+    
                             }
                         }
-                        else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
-                            pathOne.source = endSegmentName;
-                            pathOne.sourceCode = endSegmentCode;
-                            pathOne.sourceRegFund = endRegFund;
-                            pathOne.sourceIsExtra = endIsExtra;
-                            pathOne.sourceIsPerson = endIsPerson;
-                            pathOne.target = startSegmentName;
-                            pathOne.targetCode = startSegmentCode;
-                            pathOne.targetRegFund = startRegFund;
-                            pathOne.targetIsExtra = startIsExtra;
-                            pathOne.targetIsPerson = startIsPerson;
-                            pathOne.weight = weight;
-                            // pathOne.pathType = relationshipType;
-
-                            //如果isPerson = true 过滤掉
-                            if (startIsPerson != 1 || startIsPerson != '1') {
-                                pathOneCodeSet.add(`${startSegmentCode}`);
+                        else if (relationshipType == 'executes') {
+                            pathFour.compCode = endSegmentCode;
+                            if (endIsExtra == 1 || endIsExtra == '1') {
+                                pathFour.compName = endSegmentName;
+                                uniqueNamesFour.add(endSegmentName);
                             }
-                            if (endIsPerson != 1 || endIsPerson != '1') {
-                                pathOneCodeSet.add(`${endSegmentCode}`);
+                            else {
+                                uniqueCodesFour.add(endSegmentCode);
                             }
-
+                            pathFour.RMBRegFund = endRegFund;
+                            pathFour.isExtra = endIsExtra;
+                            pathFour.isPerson = endIsPerson;
+    
                         }
-                    }
-                    else if (relationshipType == 'guarantees') {
-                        if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
-                            pathTwo.source = startSegmentName;
-                            pathTwo.sourceCode = startSegmentCode;
-                            pathTwo.sourceRegFund = startRegFund;
-                            pathTwo.sourceIsExtra = startIsExtra;
-                            pathTwo.sourceIsPerson = startIsPerson;
-                            pathTwo.target = endSegmentName;
-                            pathTwo.targetCode = endSegmentCode;
-                            pathTwo.targetRegFund = endRegFund;
-                            pathTwo.targetIsExtra = endIsExtra;
-                            pathTwo.targetIsPerson = endIsPerson;
-                            pathTwo.weight = weight;
-                            // pathTwo.pathType = relationshipType;
-
+    
+                        if (null != pathOne.sourceCode && null != pathOne.targetCode) {
+                            // delete pathOne.pathType;                                             //删除pathType属性
+                            tempPathArrayOne.push(pathOne);
                         }
-                        else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
-                            pathTwo.source = endSegmentName;
-                            pathTwo.sourceCode = endSegmentCode;
-                            pathTwo.sourceRegFund = endRegFund;
-                            pathTwo.sourceIsExtra = endIsExtra;
-                            pathTwo.sourceIsPerson = endIsPerson;
-                            pathTwo.target = startSegmentName;
-                            pathTwo.targetCode = startSegmentCode;
-                            pathTwo.targetRegFund = startRegFund;
-                            pathTwo.targetIsExtra = startIsExtra;
-                            pathTwo.targetIsPerson = startIsPerson;
-                            pathTwo.weight = weight;
-                            // pathTwo.pathType = relationshipType;
-
+                        //invests关系存在的前提下, 添加guarantees关系的path
+                        if (null != pathTwo.sourceCode && null != pathTwo.targetCode && pathTwo.sourceCode != pathTwo.targetCode) {
+                            // delete pathTwo.pathType;
+                            tempPathArrayTwo.push(pathTwo);
                         }
-                    }
-                    else if (relationshipType == 'family') {
-                        if (relSegmentStartLow == startSegmentLow && relSegmentEndLow == endSegmentLow) {
-                            pathThree.source = startSegmentName;
-                            pathThree.sourceCode = startSegmentCode;
-                            pathThree.sourceIsExtra = startIsExtra;
-                            pathThree.sourceIsPerson = startIsPerson;
-                            pathThree.target = endSegmentName;
-                            pathThree.targetCode = endSegmentCode;
-                            pathThree.targetIsExtra = endIsExtra;
-                            pathThree.targetIsPerson = endIsPerson;
-                            pathThree.relationCode = relCode;
-                            pathThree.relationName = relName;
-                            // pathTwo.pathType = relationshipType;
-                            uniqueCodesThree.add(startSegmentCode);
-                            uniqueCodesThree.add(endSegmentCode);
-                            uniqueNamesThree.add(startSegmentName);
-                            uniqueNamesThree.add(endSegmentName);
-
+                        if (null != pathThree.sourceCode && null != pathThree.targetCode) {
+                            tempPathArrayThree.push(pathThree);                                        //存放家族关系路径
                         }
-                        else if (relSegmentStartLow == endSegmentLow && relSegmentEndLow == startSegmentLow) {
-                            pathThree.source = endSegmentName;
-                            pathThree.sourceCode = endSegmentCode;
-                            pathThree.sourceIsExtra = endIsExtra;
-                            pathThree.sourceIsPerson = endIsPerson;
-                            pathThree.target = startSegmentName;
-                            pathThree.targetCode = startSegmentCode;
-                            pathThree.targetIsExtra = startIsExtra;
-                            pathThree.targetIsPerson = startIsPerson;
-                            pathThree.relationCode = relCode;
-                            pathThree.relationName = relName;
-                            // pathTwo.pathType = relationshipType;
-                            uniqueCodesThree.add(startSegmentCode);
-                            uniqueCodesThree.add(endSegmentCode);
-                            uniqueNamesThree.add(startSegmentName);
-                            uniqueNamesThree.add(endSegmentName);
-
+                        if (null != pathFour.compCode) {
+                            tempPathArrayFour.push(pathFour);
                         }
+    
                     }
-                    else if (relationshipType == 'executes') {
-                        pathFour.compCode = endSegmentCode;
-                        if (endIsExtra == 1 || endIsExtra == '1') {
-                            pathFour.compName = endSegmentName;
-                            uniqueNamesFour.add(endSegmentName);
+    
+                    //处理投资关系--pathArrayOne
+                    if (null != from && null != to && tempPathArrayOne.length > 0) {
+                        //判断form/to中是否有自然人
+                        if (fromIsPerson == 1 || toIsPerson == 1) {
+                            pathArrayOne.path = tempPathArrayOne;
+                            if (fromIsPerson == 1 && toIsPerson == 0) {
+                                let sourceCodeOne = tempPathArrayOne[0].sourceCode;
+                                if (sourceCodeOne == from) {
+                                    pathArrayOne.isMainPath = 1;
+                                }
+                                else if (sourceCodeOne != from) {
+                                    pathArrayOne.isMainPath = 0;
+                                }
+                            }
+                            else if (toIsPerson == 1 && fromIsPerson == 0) {
+                                let sourceCodeOne = tempPathArrayOne[0].sourceCode;
+                                if (sourceCodeOne == to) {
+                                    pathArrayOne.isMainPath = 1;
+                                }
+                                else if (sourceCodeOne != to) {
+                                    pathArrayOne.isMainPath = 0;
+                                }
+                            }
+                            else {
+                                pathArrayOne.isMainPath = 1;
+                            }
                         }
-                        else {
-                            uniqueCodesFour.add(endSegmentCode);
+                        else if (fromIsPerson == 0 && toIsPerson == 0) {
+                            //如果from和to任何一个不在pathOne中，则剔除这条path
+                            if (pathOneCodeSet.has(from) && pathOneCodeSet.has(to)) {
+                                pathArrayOne.path = tempPathArrayOne;
+                                pathArrayOne.isMainPath = 1;
+                                //将每个path下的pathOneCodeSet中的元素添加到allCodesOne中
+                                allCodesOne = new Set([...allCodesOne, ...pathOneCodeSet]);
+                            }
                         }
-                        pathFour.RMBRegFund =  endRegFund;
-                        pathFour.isExtra = endIsExtra;
-                        pathFour.isPerson = endIsPerson;
-
-                    }
-
-                    if (null != pathOne.sourceCode && null != pathOne.targetCode) {
-                        // delete pathOne.pathType;                                             //删除pathType属性
-                        tempPathArrayOne.push(pathOne);
-                    }
-                    //invests关系存在的前提下, 添加guarantees关系的path
-                    if (null != pathTwo.sourceCode && null != pathTwo.targetCode && pathTwo.sourceCode != pathTwo.targetCode) {
-                        // delete pathTwo.pathType;
-                        tempPathArrayTwo.push(pathTwo);
-                    }
-                    if (null != pathThree.sourceCode && null != pathThree.targetCode) {
-                        tempPathArrayThree.push(pathThree);                                        //存放家族关系路径
-                    }
-                    if (null != pathFour.compCode) {
-                        tempPathArrayFour.push(pathFour);
-                    }
-                }
-
-                //除全部路径，即双向关系时，其他路径需要过滤重复的path
-                // if (index == 3) {
-                //     uniquePathArray = pathArray;
-                // }
-                // else if (index != 3) {
-                //     let isUniquePath = uniquePath(pathArray.path, uniqueFieldCodes);
-                //     if (isUniquePath) uniquePathArray = pathArray;
-                //     if (!isUniquePath) {
-                //         // pathNum--;
-                //         num--;
-                //     }
-                // }
-
-            }
-            pathArrayTwo.path = tempPathArrayTwo;
-            pathArrayThree.path = tempPathArrayThree;
-            pathArrayFour.path = tempPathArrayFour;
-            promiseResultFour.dataDetail.data.pathDetail.push(pathArrayFour);
-
-            if (null != from && null != to) {
-                //判断form/to中是否有自然人
-                if (from.indexOf('P') >= 0 || to.indexOf('P') >= 0) {
-                    pathArrayOne.path = tempPathArrayOne;
-                }
-                else if (from.indexOf('P') < 0 && to.indexOf('P') < 0) {
-                    //如果from和to任何一个不在pathOne中，则剔除这条path
-                    if (pathOneCodeSet.has(from) && pathOneCodeSet.has(to)) {
-                        pathArrayOne.path = tempPathArrayOne;
-                        //将每个path下的pathOneCodeSet中的元素添加到allCodesOne中
-                        allCodesOne = new Set([...allCodesOne, ...pathOneCodeSet]);
-                    }
-                }
-                //处理投资关系--pathArrayOne
-                if (pathArrayOne.hasOwnProperty('path') && pathArrayOne.path.length > 0) {
-                    // promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                    //过滤重复的path
-                    let pathGroup = promiseResultOne.dataDetail.data.pathDetail;
-                    let isDupFlag = isDuplicatedPath(pathGroup, pathArrayOne);
-                    if (isDupFlag == false) {
-
-                        //判断form/to都不是自然人
-                        if (from.indexOf('P') >= 0 || to.indexOf('P') >= 0) {
-                            //处理共同投资和共同股东关系路径
-                            if (index == 4 || index == 5) {
-                                let sourceCodeVal = pathArrayOne.path[0].sourceCode;
-                                let targetCodeVal = pathArrayOne.path[0].targetCode;
-                                let fromCode = parseInt(from);
-                                let toCode = parseInt(to);
-                                let result = findCodeAppearTimes(pathArrayOne.path);
-                                //判断path是否闭环
-                                let isClosedLoopFlag = isClosedLoopPath(from, to, pathArrayOne.path);
-                                if (isClosedLoopFlag == false && pathArrayOne.path.length > 1 && (result.sourceIsRepeat == true || result.targetIsRepeat == true)) {
-                                    //处理共同投资关系路径
-                                    if (index == 4 && result.targetIsRepeat == true) {
-                                        if ((sourceCodeVal == fromCode && targetCodeVal == toCode) || (sourceCodeVal == toCode && targetCodeVal == fromCode)) {
-                                            console.log('delete the path !');
-                                        }
-                                        else {
-                                            promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                                            for (let subPath of pathArrayOne.path) {
-                                                let isPerson_source = subPath.sourceIsPerson;
-                                                let isPerson_target = subPath.targetIsPerson;
-                                                let ITCode_source = subPath.sourceCode;
-                                                let ITCode_target = subPath.targetCode;
-                                                if (isPerson_source != 1 && isPerson_source != '1') {
-                                                    newAllCodesOne.add(`${ITCode_source}`);
+                        //处理投资关系--pathArrayOne
+                        if (pathArrayOne.hasOwnProperty('path') && pathArrayOne.path.length > 0) {
+                            // promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
+                            //过滤重复的path
+                            let pathGroup = promiseResultOne.dataDetail.data.pathDetail;
+                            let isDupFlag = isDuplicatedPath(pathGroup, pathArrayOne);
+                            if (isDupFlag == false) {
+    
+                                //判断form/to都不是自然人
+                                // if (from.indexOf('P') < 0 && to.indexOf('P') < 0) {
+                                //处理共同投资和共同股东关系路径
+                                if (index == 4 || index == 5) {
+                                    let sourceCodeVal = pathArrayOne.path[0].sourceCode;
+                                    let targetCodeVal = pathArrayOne.path[0].targetCode;
+                                    let fromCode = from;
+                                    let toCode = to;
+                                    let result = findCodeAppearTimes(pathArrayOne.path);
+                                    //如果source/target都出现2次以上，过滤掉
+                                    if (result.sourceIsRepeat == true && result.targetIsRepeat == true) {
+                                        console.log('过滤1条出现重复节点的path!');
+                                    }
+                                    else if (result.sourceIsRepeat == false || result.targetIsRepeat == false) {
+                                        //判断path是否闭环
+                                        let isClosedLoopFlag = isClosedLoopPath(from, to, pathArrayOne.path);
+                                        if (isClosedLoopFlag == false && pathArrayOne.path.length > 1 && (result.sourceIsRepeat == true || result.targetIsRepeat == true)) {
+                                            //处理共同投资关系路径
+                                            if (index == 4 && result.targetIsRepeat == true) {
+                                                if ((sourceCodeVal == fromCode && targetCodeVal == toCode) || (sourceCodeVal == toCode && targetCodeVal == fromCode)) {
+                                                    console.log('delete the path !');
                                                 }
-                                                if (isPerson_target != 1 && isPerson_target != '1') {
-                                                    newAllCodesOne.add(`${ITCode_target}`);
+                                                else {
+                                                    promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
+                                                    for (let subPath of pathArrayOne.path) {
+                                                        let isPerson_source = subPath.sourceIsPerson;
+                                                        let isPerson_target = subPath.targetIsPerson;
+                                                        let ITCode_source = subPath.sourceCode;
+                                                        let ITCode_target = subPath.targetCode;
+                                                        if (isPerson_source != 1 && isPerson_source != '1') {
+                                                            newCodesOne.add(`${ITCode_source}`);
+                                                        }
+                                                        if (isPerson_target != 1 && isPerson_target != '1') {
+                                                            newCodesOne.add(`${ITCode_target}`);
+                                                        }
+                                                        newAllCodesOne.add(ITCode_source);
+                                                        newAllCodesOne.add(ITCode_target);
+                                                    }
                                                 }
                                             }
-                                        }
-                                    }
-                                    //处理共同股东关系路径
-                                    if (index == 5 && result.sourceIsRepeat == true) {
-                                        if ((sourceCodeVal == fromCode && targetCodeVal == toCode) || (sourceCodeVal == toCode && targetCodeVal == fromCode)) {
-                                            console.log('delete the path !');
-                                        }
-                                        else {
-                                            promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                                            for (let subPath of pathArrayOne.path) {
-                                                let isPerson_source = subPath.sourceIsPerson;
-                                                let isPerson_target = subPath.targetIsPerson;
-                                                let ITCode_source = subPath.sourceCode;
-                                                let ITCode_target = subPath.targetCode;
-                                                if (isPerson_source != 1 && isPerson_source != '1') {
-                                                    newAllCodesOne.add(`${ITCode_source}`);
+                                            //处理共同股东关系路径
+                                            if (index == 5 && result.sourceIsRepeat == true) {
+                                                if ((sourceCodeVal == fromCode && targetCodeVal == toCode) || (sourceCodeVal == toCode && targetCodeVal == fromCode)) {
+                                                    console.log('delete the path !');
                                                 }
-                                                if (isPerson_target != 1 && isPerson_target != '1') {
-                                                    newAllCodesOne.add(`${ITCode_target}`);
+                                                else {
+                                                    promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
+                                                    for (let subPath of pathArrayOne.path) {
+                                                        let isPerson_source = subPath.sourceIsPerson;
+                                                        let isPerson_target = subPath.targetIsPerson;
+                                                        let ITCode_source = subPath.sourceCode;
+                                                        let ITCode_target = subPath.targetCode;
+                                                        if (isPerson_source != 1 && isPerson_source != '1') {
+                                                            newCodesOne.add(`${ITCode_source}`);
+                                                        }
+                                                        if (isPerson_target != 1 && isPerson_target != '1') {
+                                                            newCodesOne.add(`${ITCode_target}`);
+                                                        }
+                                                        newAllCodesOne.add(ITCode_source);
+                                                        newAllCodesOne.add(ITCode_target);
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            //处理直接投资关系路径
-                            else if (index == 0) {
-                                let flag = isContinuousPath(from, to, pathArrayOne.path);
-                                if (flag == true) {
+                                //处理直接投资关系路径
+                                else if (index == 0) {
+                                    let flag = false;
+                                    // if (fromIsPerson == 1 || toIsPerson == 1) {
+                                    //     flag = true;
+                                    // }
+                                    // else {
+                                    //     let result = isContinuousPath(from, to, pathArrayOne.path);
+                                    //     flag = result.flag;
+                                    //     pathArrayOne.path = result.pathDetail;
+                                    // }
+                                    let result = isContinuousPath(from, to, pathArrayOne.path);
+                                    flag = result.flag;
+                                    pathArrayOne.path = result.pathDetail;
+                                    if (flag == true) {
+                                        promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
+                                        for (let subPath of pathArrayOne.path) {
+                                            let isPerson_source = subPath.sourceIsPerson;
+                                            let isPerson_target = subPath.targetIsPerson;
+                                            let ITCode_source = subPath.sourceCode;
+                                            let ITCode_target = subPath.targetCode;
+                                            if (isPerson_source != 1 && isPerson_source != '1') {
+                                                newCodesOne.add(`${ITCode_source}`);
+                                            }
+                                            if (isPerson_target != 1 && isPerson_target != '1') {
+                                                newCodesOne.add(`${ITCode_target}`);
+                                            }
+                                            newAllCodesOne.add(ITCode_source);
+                                            newAllCodesOne.add(ITCode_target);
+                                        }
+                                    }
+                                }
+                                //处理直接被投资关系路径
+                                else if (index == 1) {
+                                    let flag = false;
+                                    // if (fromIsPerson == 1 || toIsPerson == 1) {
+                                    //     flag = true;
+                                    // }
+                                    // else {
+                                    //     let result = isContinuousPath(from, to, pathArrayOne.path);
+                                    //     flag = result.flag;
+                                    //     pathArrayOne.path = result.pathDetail;
+                                    // }
+                                    let result = isContinuousPath(from, to, pathArrayOne.path);
+                                    flag = result.flag;
+                                    pathArrayOne.path = result.pathDetail;
+                                    if (flag == true) {
+                                        promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
+                                        for (let subPath of pathArrayOne.path) {
+                                            let isPerson_source = subPath.sourceIsPerson; 7
+                                            let isPerson_target = subPath.targetIsPerson;
+                                            let ITCode_source = subPath.sourceCode;
+                                            let ITCode_target = subPath.targetCode;
+                                            if (isPerson_source != 1 && isPerson_source != '1') {
+                                                newCodesOne.add(`${ITCode_source}`);
+                                            }
+                                            if (isPerson_target != 1 && isPerson_target != '1') {
+                                                newCodesOne.add(`${ITCode_target}`);
+                                            }
+                                            newAllCodesOne.add(ITCode_source);
+                                            newAllCodesOne.add(ITCode_target);
+                                        }
+                                    }
+                                }
+                                //处理最短路径等其他关系路径
+                                else {
                                     promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
                                     for (let subPath of pathArrayOne.path) {
                                         let isPerson_source = subPath.sourceIsPerson;
@@ -922,123 +1042,65 @@ async function handlerPromise(from, to, result, index) {
                                         let ITCode_source = subPath.sourceCode;
                                         let ITCode_target = subPath.targetCode;
                                         if (isPerson_source != 1 && isPerson_source != '1') {
-                                            newAllCodesOne.add(`${ITCode_source}`);
+                                            newCodesOne.add(`${ITCode_source}`);
                                         }
                                         if (isPerson_target != 1 && isPerson_target != '1') {
-                                            newAllCodesOne.add(`${ITCode_target}`);
+                                            newCodesOne.add(`${ITCode_target}`);
                                         }
+                                        newAllCodesOne.add(ITCode_source);
+                                        newAllCodesOne.add(ITCode_target);
                                     }
-                                }
-                            }
-                            //处理直接被投资关系路径
-                            else if (index == 1) {
-                                let flag = isContinuousPath(from, to, pathArrayOne.path);
-                                if (flag == true) {
-                                    promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                                    for (let subPath of pathArrayOne.path) {
-                                        let isPerson_source = subPath.sourceIsPerson; 7
-                                        let isPerson_target = subPath.targetIsPerson;
-                                        let ITCode_source = subPath.sourceCode;
-                                        let ITCode_target = subPath.targetCode;
-                                        if (isPerson_source != 1 && isPerson_source != '1') {
-                                            newAllCodesOne.add(`${ITCode_source}`);
-                                        }
-                                        if (isPerson_target != 1 && isPerson_target != '1') {
-                                            newAllCodesOne.add(`${ITCode_target}`);
-                                        }
-                                    }
-                                }
-                            }
-                            //处理最短路径等其他关系路径
-                            else {
-                                promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                                for (let subPath of pathArrayOne.path) {
-                                    let isPerson_source = subPath.sourceIsPerson;
-                                    let isPerson_target = subPath.targetIsPerson;
-                                    let ITCode_source = subPath.sourceCode;
-                                    let ITCode_target = subPath.targetCode;
-                                    if (isPerson_source != 1 && isPerson_source != '1') {
-                                        newAllCodesOne.add(`${ITCode_source}`);
-                                    }
-                                    if (isPerson_target != 1 && isPerson_target != '1') {
-                                        newAllCodesOne.add(`${ITCode_target}`);
-                                    }
-                                }
-                            }
-                        }
-                        //from/to中存在自然人的情况, 不做处理
-                        else if (from.indexOf('P') < 0 && to.indexOf('P') < 0) {
-                            promiseResultOne.dataDetail.data.pathDetail.push(pathArrayOne);
-                            for (let subPath of pathArrayOne.path) {
-                                let isPerson_source = subPath.sourceIsPerson;
-                                let isPerson_target = subPath.targetIsPerson;
-                                let ITCode_source = subPath.sourceCode;
-                                let ITCode_target = subPath.targetCode;
-                                if (isPerson_source != 1 && isPerson_source != '1') {
-                                    newAllCodesOne.add(`${ITCode_source}`);
-                                }
-                                if (isPerson_target != 1 && isPerson_target != '1') {
-                                    newAllCodesOne.add(`${ITCode_target}`);
                                 }
                             }
                         }
                     }
+    
+                    pathArrayTwo.path = tempPathArrayTwo;
+                    if (tempPathArrayThree.length > 0) {
+                        // pathArrayThree.path = [tempPathArrayThree[0]];                                  //family关系只取一层关系
+                        pathArrayThree.path = tempPathArrayThree;
+                    }
+    
+                    //处理担保关系--pathArrayTwo
+                    if (pathArrayTwo.hasOwnProperty('path') && pathArrayTwo.path.length > 0) {
+                        tempResultTwo.push(pathArrayTwo);
+                    }
+    
+                    //处理家族关系--pathArrayThree
+                    if (pathArrayThree.hasOwnProperty('path') && pathArrayThree.path.length > 0) {
+                        //过滤重复path
+                        let pathGroup = [];
+                        if (tempResultThree.length > 0) {
+                            for (let subResultThree of tempResultThree) {
+                                pathGroup.push(subResultThree);
+                            }
+                        }
+                        if (pathGroup.length > 0) {
+                            let isDupFlag = isDuplicatedPath(pathGroup, pathArrayThree);
+                            if (isDupFlag == false) {
+                                tempResultThree.push(pathArrayThree);
+                            }
+                        }
+                        else if (pathGroup.length == 0) {
+                            tempResultThree.push(pathArrayThree);
+                        }
+                    }
+    
+                    //处理高管投资关系--pathArrayFour
+                    pathArrayFour.path = tempPathArrayFour;
+                    promiseResultFour.dataDetail.data.pathDetail.push(pathArrayFour);                   
                 }
+               
+
             }
 
-            //处理担保关系--pathArrayTwo
-            if (pathArrayTwo.hasOwnProperty('path') && pathArrayTwo.path.length > 0) {
-                tempResultTwo.push(pathArrayTwo);
-            }
-            if (pathArrayThree.hasOwnProperty('path') && pathArrayThree.path.length > 0) {
-                //过滤重复path
-                let pathGroup = [];
-                if (tempResultThree.length > 0) {
-                    for (let subResultThree of tempResultThree) {
-                        pathGroup.push(subResultThree);
-                    }
-                }
-                if (pathGroup.length > 0) {
-                    let isDupFlag = isDuplicatedPath(pathGroup, pathArrayThree);
-                    if (isDupFlag == false) {
-                        tempResultThree.push(pathArrayThree);
-                    }
-                }
-                else if (pathGroup.length == 0) {
-                    tempResultThree.push(pathArrayThree);
-                }
-            }
         }
 
-        uniqueCodesOne = Array.from(newAllCodesOne);
-        uniqueCodesThreeArray = Array.from(uniqueCodesThree);
-        uniqueNamesThreeArray = Array.from(uniqueNamesThree);
+        uniqueCodesOne = Array.from(newCodesOne);
+        // uniqueCodesThreeArray = Array.from(uniqueCodesThree);
+        // uniqueNamesThreeArray = Array.from(uniqueNamesThree);
         uniqueCodesFourArray = Array.from(uniqueCodesFour);
         uniqueNamesFourArray = Array.from(uniqueNamesFour);
-
-        //根据投资关系pathArrayOne中涉及到的机构才展示担保关系pathArrayTwo
-        // for (let subResult of tempResultTwo) {
-        //     let flag = true;
-        //     for (let subPathDetail of subResult.path) {
-        //         let sourceCode_two = subPathDetail.sourceCode;
-        //         let targetCode_two = subPathDetail.targetCode;
-        //         if (newAllCodesOne.has(`${sourceCode_two}`) == false || newAllCodesOne.has(`${targetCode_two}`) == false) {
-        //             console.log('该担保关系的path不符合要求');
-        //             flag = false;
-        //             break;
-        //         }
-        //         allCodesTwo.add(`${sourceCode_two}`);
-        //         allCodesTwo.add(`${targetCode_two}`);
-        //     }
-        //     if (flag == true) {
-        //         //过滤重复的path
-        //         let pathGroup = promiseResultTwo.dataDetail.data.pathDetail;
-        //         let isDupFlag = isDuplicatedPath(pathGroup, subResult);
-        //         if (isDupFlag == false) {
-        //             promiseResultTwo.dataDetail.data.pathDetail.push(subResult);
-        //         }
-        //     }
-        // }
 
         //根据投资关系pathArrayOne中涉及到的机构才展示担保关系pathArrayTwo
         for (let subResult of tempResultTwo) {
@@ -1046,7 +1108,7 @@ async function handlerPromise(from, to, result, index) {
             for (let subPathDetail of subResult.path) {
                 let sourceCode_two = subPathDetail.sourceCode;
                 let targetCode_two = subPathDetail.targetCode;
-                if (newAllCodesOne.has(`${sourceCode_two}`) == true && newAllCodesOne.has(`${targetCode_two}`) == true) {
+                if (newCodesOne.has(`${sourceCode_two}`) == true && newCodesOne.has(`${targetCode_two}`) == true) {
                     allCodesTwo.add(`${sourceCode_two}`);
                     allCodesTwo.add(`${targetCode_two}`);
                     newSubResult.path.push(subPathDetail);
@@ -1062,8 +1124,43 @@ async function handlerPromise(from, to, result, index) {
                 }
             }
         }
-
         uniqueCodesTwo = Array.from(allCodesTwo);
+
+        //根据投资关系pathArrayOne中涉及到的机构才展示家族关系pathArrayThree
+        for (let subResult of tempResultThree) {
+            let newSubResult = { path: [] };
+            for (let subPathDetail of subResult.path) {
+                let sourceCode_three = subPathDetail.sourceCode;
+                let targetCode_three = subPathDetail.targetCode;
+                //直接投资关系(被投资关系)时，from/to有自然人，不过滤
+                if ((index == 0 || index == 1) && (fromIsPerson == 1 || toIsPerson == 1)) {
+                    newSubResult.path.push(subPathDetail);
+                }
+                else {
+                    if (newAllCodesOne.has(`${sourceCode_three}`) == true && newAllCodesOne.has(`${targetCode_three}`) == true) {
+                        newSubResult.path.push(subPathDetail);
+                    }
+                }
+            }
+            if (newSubResult.path.length > 0) {
+                newTempResultThree.push(newSubResult);
+                //过滤重复的path
+                let pathGroup = promiseResultThree.dataDetail.data.pathDetail;
+                let isDupFlag = isDuplicatedPath(pathGroup, newSubResult);
+                if (isDupFlag == false) {
+                    promiseResultThree.dataDetail.data.pathDetail.push(newSubResult);
+                    for (let newSubPathDetail of newSubResult.path) {
+                        uniqueCodesThree.add(newSubPathDetail.sourceCode);
+                        uniqueCodesThree.add(newSubPathDetail.targetCode);
+                        uniqueNamesThree.add(newSubPathDetail.source);
+                        uniqueNamesThree.add(newSubPathDetail.target);
+                    }
+                }
+            }
+        }
+
+        uniqueCodesThreeArray = Array.from(uniqueCodesThree);
+        uniqueNamesThreeArray = Array.from(uniqueNamesThree);
 
         let retryCount = 0;
         do {
@@ -1086,6 +1183,7 @@ async function handlerPromise(from, to, result, index) {
             console.error('retryCount: 3, 批量查询机构名称失败');
             logger.error('retryCount: 3, 批量查询机构名称失败');
         }
+
         let newAllNamesOne = handlerAllNames(allNamesOne);                         // 处理ITName为空的情况
         let codeNameMapResOne = getCodeNameMapping(uniqueCodesOne, newAllNamesOne);   //获取ITCode2->ITName的Map
         promiseResultOne.mapRes = codeNameMapResOne;
@@ -1107,8 +1205,8 @@ async function handlerPromise(from, to, result, index) {
 
         promiseResultThree.dataDetail.names = uniqueNamesThreeArray;
         promiseResultThree.dataDetail.codes = uniqueCodesThreeArray;
-        promiseResultThree.dataDetail.data.pathDetail = tempResultThree;
-        promiseResultThree.dataDetail.data.pathNum = promiseResultThree.dataDetail.data.pathNum.length;
+        // promiseResultThree.dataDetail.data.pathDetail = tempResultThree;
+        promiseResultThree.dataDetail.data.pathNum = promiseResultThree.dataDetail.data.pathDetail.length;
 
         promiseResultFour.mapRes = codeNameMapResFour;
         promiseResultFour.dataDetail.names = uniqueNamesFourArray.concat(newAllNamesFour);
@@ -1228,7 +1326,7 @@ function setSourceTarget2(map, pathDetail) {
                 let compName = null;
                 if (subPath.isExtra == '1' || subPath.isExtra == 1 || subPath.isExtra == 'null') {
                     compName = subPath.compName;
-                } 
+                }
                 else if (subPath.isExtra == '0' || subPath.isExtra == 0) {
                     compName = map.get(`${subPath.compCode}`);
                 }
@@ -1242,6 +1340,25 @@ function setSourceTarget2(map, pathDetail) {
         return (err);
     }
 
+}
+
+//按 注册资本, 名称因子排序
+function sortRegName(a, b) {
+    let compName_a = a.path[0].compName;
+    let RMBRegFund_a = a.path[0].RMBRegFund;
+    let compName_b = b.path[0].compName;
+    let RMBRegFund_b = b.path[0].RMBRegFund;
+    let flag = 0;
+    let flagOne = RMBRegFund_b - RMBRegFund_a;                                                                  //注册资本 降序
+    let flagTwo = compName_b - compName_a;
+    //1. 注册资本 = 0
+    if (flagOne == 0) {
+        flag = flagTwo;                                                                                          //名称 降序
+    }
+    else if (flagOne != 0) {
+        flag = flagOne;
+    }
+    return flag;
 }
 
 //通过注册资本区间值筛选路径
@@ -1544,27 +1661,55 @@ let searchGraph = {
                         // let investPathQuery_inBound = `start to=node(${nodeIdOne}), from=node(${nodeIdTwo}) match p= (from)<-[r:invests*..${IVDepth}]-(to) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
                         // let investPathQuery_outBound = `match p= (from:company{ITCode2: ${from}})-[r:invests*..${IVDepth}]->(to:company{ITCode2: ${to}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;
                         // let investPathQuery_inBound = `match p= (from:company{ITCode2: ${to}})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: ${from}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;
-                        //from/to均为自然人时才找family关系
-                        if (fromIsPerson == 1 && toIsPerson == 1) {
-                            if (pathType == 'invests' || !pathType) {
-                                investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests*..${IVDepth}]->(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                                investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                            }
-                            else if (pathType == 'all') {
-                                investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests|guarantees|family*..${IVDepth}]->(to:company{ITCode2: '${to}'}) return p`;
-                                investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests|guarantees|family*..${IVDepth}]-(to:company{ITCode2: '${from}'}) return p`;
-                            }
+                        if (pathType == 'invests' || !pathType) {
+                            investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests*..${IVDepth}]->(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                            investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
                         }
-                        else {
-                            if (pathType == 'invests' || !pathType) {
-                                investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests*..${IVDepth}]->(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                                investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        else if (pathType == 'all') {
+                            //from/to均为自然人时只找family关系
+                            if (fromIsPerson == 1 && toIsPerson == 1) {
+                                investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:family*]-(to:company{ITCode2: '${to}'}) return p`;
+                                investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})-[r:family*]-(to:company{ITCode2: '${from}'}) return p`;
                             }
-                            else if (pathType == 'all') {
+                            else if (fromIsPerson == 1) {
+                                // investPathQuery_outBound = `match p1 = (from:company{ITCode2: '${from}'})-[r1:invests|guarantees|family*..${IVDepth}]->(to:company{ITCode2: '${to}'}), p2 = (:company{ITCode2: '${from}'})-[r2:family*..1]-() return p1,p2`;
+                                // investPathQuery_inBound = `match p1 = (from:company{ITCode2: '${to}'})<-[r1:invests|guarantees|family*..${IVDepth}]-(to:company{ITCode2: '${from}'}), p2 = (:company{ITCode2: '${from}'})-[r2:family*..1]-() return p1,p2`;
+
+                                investPathQuery_outBound = `match p1 = (from:company{ITCode2: '${from}'})-[r1:invests|guarantees*..${IVDepth}]->(to:company{ITCode2: '${to}'}) optional match p2 = (from:company{ITCode2: '${from}'})-[r2:family*]-(family), p3 = (family)-[r3:invests|guarantees*..${IVDepth}]->(to:company{ITCode2: '${to}'}) return distinct p1,p2,p3`;
+                                investPathQuery_inBound = `match p1 = (from:company{ITCode2: '${to}'})<-[r1:invests|guarantees|family*..${IVDepth}]-(to:company{ITCode2: '${from}'}) optional match p2 = (to:company{ITCode2: '${from}'})-[r3:family*]-(family), p3 = (family)-[r3:invests|guarantees*..${IVDepth}]->(from:company{ITCode2: '${to}'}) return distinct p1,p2,p3`;
+
+                            }
+                            // else if (toIsPerson == 1) {
+                            //     investPathQuery_outBound = `match p1 = (from:company{ITCode2: '${from}'})-[r1:invests|guarantees|family*..${IVDepth}]->(to:company{ITCode2: '${to}'}), p2 = (:company{ITCode2: '${to}'})-[r2:family*..1]-() return p1,p2`;
+                            //     investPathQuery_inBound = `match p1 = (from:company{ITCode2: '${to}'})<-[r1:invests|guarantees|family*..${IVDepth}]-(to:company{ITCode2: '${from}'}), p2 = (:company{ITCode2: '${to}'})-[r2:family*..1]-() return p1,p2`;
+                            // }
+                            else {
                                 investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests|guarantees*..${IVDepth}]->(to:company{ITCode2: '${to}'}) return p`;
                                 investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests|guarantees*..${IVDepth}]-(to:company{ITCode2: '${from}'}) return p`;
                             }
                         }
+
+                        //from/to均为自然人时才找family关系
+                        // if (fromIsPerson == 1 && toIsPerson == 1) {
+                        //     if (pathType == 'invests' || !pathType) {
+                        //         investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests*..${IVDepth}]->(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //         investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //     }
+                        //     else if (pathType == 'all') {
+                        //         investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests|guarantees|family*..${IVDepth}]->(to:company{ITCode2: '${to}'}) return p`;
+                        //         investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests|guarantees|family*..${IVDepth}]-(to:company{ITCode2: '${from}'}) return p`;
+                        //     }
+                        // }
+                        // else {
+                        //     if (pathType == 'invests' || !pathType) {
+                        //         investPathQuery_outBound = `match p= (from:company{ITCode2: '${from}'})-[r:invests*..${IVDepth}]->(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //         investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests*..${IVDepth}]-(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //     }
+                        //     else if (pathType == 'all') {
+                        //         investPathQuery_outBound = `match p1= (from:company{ITCode2: '${from}'})-[r1:invests|guarantees*..${IVDepth}]->(to:company{ITCode2: '${to}'}), p2 = (from:company{ITCode2: '${from}'})-[r2:family]-(), p3 = (to:company{ITCode2: '${to}'})-[r3:family]-() return p1,p2,p3`;
+                        //         investPathQuery_inBound = `match p= (from:company{ITCode2: '${to}'})<-[r:invests|guarantees*..${IVDepth}]-(to:company{ITCode2: '${from}'}) return p`;
+                        //     }
+                        // }
 
                         if (fromOutBoundNum > toInBoundNum) {
                             investPathQuery = investPathQuery_outBound;
@@ -1745,29 +1890,55 @@ let searchGraph = {
                         let investedByPathQuery = null;
                         let investedByPathQuery_inBound = null;
                         let investedByPathQuery_outBound = null;
-                        // let investedByPathQuery_inBound = `match p= (from:company{ITCode2: ${from}})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: ${to}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;
-                        // let investedByPathQuery_outBound = `match p= (from:company{ITCode2: ${to}})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: ${from}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;    
-                        //from/to均为自然人时才找family关系
-                        if (fromIsPerson == 1 && toIsPerson == 1) {
-                            if (pathType == 'invests' || !pathType) {
-                                investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                                investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                            }
-                            else if (pathType == 'all') {
-                                investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests|guarantees|family*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) return p`;
-                                investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests|guarantees|family*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) return p`;
-                            }
+                        if (pathType == 'invests' || !pathType) {
+                            investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                            investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
                         }
-                        else {
-                            if (pathType == 'invests' || !pathType) {
-                                investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
-                                investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        else if (pathType == 'all') {
+                            //from/to均为自然人时只找family关系
+                            if (fromIsPerson == 1 && toIsPerson == 1) {
+                                investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})-[r:family*]-(to:company{ITCode2: '${to}'}) return p`;
+                                investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:family*]-(to:company{ITCode2: '${from}'}) return p`;
                             }
-                            else if (pathType == 'all') {
+                            // else if (fromIsPerson == 1) {
+                            //     investedByPathQuery_inBound = `match p1 = (from:company{ITCode2: '${from}'})<-[r1:invests|guarantees|family*..${IVBDepth}]-(to:company{ITCode2: '${to}'}), p2 = (:company{ITCode2: '${from}'})-[r2:family*..1]-() return p1,p2`;
+                            //     investedByPathQuery_outBound = `match p1 = (from:company{ITCode2: '${to}'})-[r1:invests|guarantees|family*..${IVBDepth}]->(to:company{ITCode2: '${from}'}), p2 = (:company{ITCode2: '${from}'})-[r2:family*..1]-() return p1,p2`;
+                            // }
+                            else if (toIsPerson == 1) {
+                                // investedByPathQuery_inBound = `match p1 = (from:company{ITCode2: '${from}'})<-[r1:invests|guarantees|family*..${IVBDepth}]-(to:company{ITCode2: '${to}'}), p2 = (:company{ITCode2: '${to}'})-[r2:family*..1]-() return p1,p2`;
+                                // investedByPathQuery_outBound = `match p1 = (from:company{ITCode2: '${to}'})-[r1:invests|guarantees|family*..${IVBDepth}]->(to:company{ITCode2: '${from}'}), p2 = (:company{ITCode2: '${to}'})-[r2:family*..1]-() return p1,p2`;
+
+                                investedByPathQuery_inBound = `match p1 = (from:company{ITCode2: '${from}'})<-[r1:invests|guarantees*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) optional match p2 = (to:company{ITCode2: '${to}'})-[r2:family*]-(family), p3 = (from:company{ITCode2: '${from}'})<-[r3:invests|guarantees*..${IVBDepth}]-(family) return distinct p1,p2,p3`;
+                                investedByPathQuery_outBound = `match p1 = (from:company{ITCode2: '${to}'})-[r1:invests|guarantees*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) optional match p2 = (from:company{ITCode2: '${to}'})-[r2:family*]-(family), p3 = (family)-[r3:invests|guarantees*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) return distinct p1,p2,p3`;
+                            }
+                            else {
                                 investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests|guarantees*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) return p`;
                                 investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests|guarantees*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) return p`;
                             }
                         }
+                        // let investedByPathQuery_inBound = `match p= (from:company{ITCode2: ${from}})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: ${to}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;
+                        // let investedByPathQuery_outBound = `match p= (from:company{ITCode2: ${to}})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: ${from}}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight} and from.isExtra = '0' and to.isExtra = '0') return p`;    
+                        //from/to均为自然人时才找family关系
+                        // if (fromIsPerson == 1 && toIsPerson == 1) {
+                        //     if (pathType == 'invests' || !pathType) {
+                        //         investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //         investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //     }
+                        //     else if (pathType == 'all') {
+                        //         investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests|guarantees|family*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) return p`;
+                        //         investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests|guarantees|family*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) return p`;
+                        //     }
+                        // }
+                        // else {
+                        //     if (pathType == 'invests' || !pathType) {
+                        //         investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //         investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
+                        //     }
+                        //     else if (pathType == 'all') {
+                        //         investedByPathQuery_inBound = `match p= (from:company{ITCode2: '${from}'})<-[r:invests|guarantees*..${IVBDepth}]-(to:company{ITCode2: '${to}'}) return p`;
+                        //         investedByPathQuery_outBound = `match p= (from:company{ITCode2: '${to}'})-[r:invests|guarantees*..${IVBDepth}]->(to:company{ITCode2: '${from}'}) return p`;
+                        //     }
+                        // }
 
                         // let investedByPathQuery_inBound = `start from=node(${nodeIdOne}), to=node(${nodeIdTwo}) match p= (from)<-[r:invests*..${IVBDepth}]-(to) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
                         // let investedByPathQuery_outBound = `start to=node(${nodeIdOne}), from=node(${nodeIdTwo}) match p= (from)-[r:invests*..${IVBDepth}]->(to) where all(rel in r where rel.weight >= ${lowWeight} and rel.weight <= ${highWeight}) return p`;
@@ -2196,8 +2367,24 @@ let searchGraph = {
                             commonInvestPathQueryTwo = `match p= (from:company{ITCode2: '${to}'})-[r1:invests*..${CIVDepth / 2}]->()<-[r2:invests*..${CIVDepth / 2}]-(to:company{ITCode2: '${from}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
                         }
                         else if (pathType == 'all') {
-                            commonInvestPathQueryOne = `match p= (from:company{ITCode2: '${from}'})-[r1:invests|guarantees|family*..${CIVDepth / 2}]->()<-[r2:invests|guarantees|family*..${CIVDepth / 2}]-(to:company{ITCode2: '${to}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
-                            commonInvestPathQueryTwo = `match p= (from:company{ITCode2: '${to}'})-[r1:invests|guarantees|family*..${CIVDepth / 2}]->()<-[r2:invests|guarantees|family*..${CIVDepth / 2}]-(to:company{ITCode2: '${from}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                            //判断from、to是否自然人的personalCode
+                            let fromIsPerson = 0;
+                            let toIsPerson = 0;
+                            if (from.indexOf('P') >= 0) {
+                                fromIsPerson = 1;
+                            }
+                            if (to.indexOf('P') >= 0) {
+                                toIsPerson = 1;
+                            }
+                            //当from/to均为自然人时加入p2, 查询from/to是否含有family关系, p1不需要查询family关系
+                            if (fromIsPerson == 1 && toIsPerson == 1) {
+                                commonInvestPathQueryOne = `match p1 = (from:company{ITCode2: '${from}'})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: '${to}'}), p2 = (from:company{ITCode2: '${from}'})-[r3:family*..1]-(to:company{ITCode2: '${to}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p1,p2`;
+                                commonInvestPathQueryTwo = `match p1 = (from:company{ITCode2: '${to}'})-[r1:invests|guarantees*..${CIVDepth / 2}]->()<-[r2:invests|guarantees*..${CIVDepth / 2}]-(to:company{ITCode2: '${from}'}), p2 = (from:company{ITCode2: '${from}'})-[r3:family*..1]-(to:company{ITCode2: '${to}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p1,p2`;
+                            }
+                            else {
+                                commonInvestPathQueryOne = `match p= (from:company{ITCode2: '${from}'})-[r1:invests|guarantees|family*..${CIVDepth / 2}]->()<-[r2:invests|guarantees|family*..${CIVDepth / 2}]-(to:company{ITCode2: '${to}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                                commonInvestPathQueryTwo = `match p= (from:company{ITCode2: '${to}'})-[r1:invests|guarantees|family*..${CIVDepth / 2}]->()<-[r2:invests|guarantees|family*..${CIVDepth / 2}]-(to:company{ITCode2: '${from}'}) using index from:company(ITCode2) using index to:company(ITCode2) return p`;
+                            }
                         }
                         if (fromOutBoundNum > toOutBoundNum) {
                             commonInvestPathQuery = commonInvestPathQueryOne;
@@ -2477,7 +2664,7 @@ let searchGraph = {
     },
 
     //高管投资关系路径查询
-    queryExecutiveInvestPath: async function (code) {
+    queryExecutiveInvestPath: async function (code, surStatus) {
         return new Promise(async function (resolve, reject) {
 
             try {
@@ -2488,7 +2675,13 @@ let searchGraph = {
                 //缓存
                 let previousValue = await cacheHandlers.getCache(cacheKey);
                 if (!previousValue) {
-                    let executiveInvestPathQuery = `match p= (from:company{ITCode2: '${code}'})-[r:executes]->(to) return p`;
+                    let executiveInvestPathQuery = null;
+                    if (surStatus == 0) {
+                        executiveInvestPathQuery = `match p= (from:company{ITCode2: '${code}'})-[r:executes]->(to) return p`;
+                    }
+                    else if (surStatus == 1 || surStatus == '1') {
+                        executiveInvestPathQuery = `match p= (from:company{ITCode2: '${code}'})-[r:executes]->(to) where to.surStatus = '1' return p`;
+                    }
                     let retryCount = 0;
                     let resultPromise = null;
                     do {
@@ -2513,13 +2706,14 @@ let searchGraph = {
                     if (resultPromise.records.length > 0) {
                         let result = await handlerPromise(null, null, resultPromise, j);
                         let afterPathDetailFour = setSourceTarget2(result.pathTypeFour.mapRes, result.pathTypeFour.dataDetail.data.pathDetail);
-                        result.pathTypeFour.dataDetail.data.pathDetail = afterPathDetailFour;
+                        let sortPathDetailFour = afterPathDetailFour.sort(sortRegName);                                   //按注册资本、名称排序
+                        result.pathTypeFour.dataDetail.data.pathDetail = sortPathDetailFour;
                         let newResult = result.pathTypeFour.dataDetail;
                         // cacheHandlers.setCache(cacheKey, JSON.stringify(newResult));
                         return resolve(newResult);
                     }
                     else {
-                        return resolve({data: {pathDetail: [], pathNum: 0}, type: `result_12`, typeName: 'executiveInvestPath', names: [] });
+                        return resolve({ data: { pathDetail: [], pathNum: 0 }, type: `result_12`, typeName: 'executiveInvestPath', names: [] });
                     }
                 }
                 else if (previousValue) {

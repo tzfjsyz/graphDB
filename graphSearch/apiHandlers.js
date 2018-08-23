@@ -805,6 +805,12 @@ let apiHandlers = {
     //高管投资关系路径查询
     queryExecutiveInvestPathInfo: async function (request, reply) {
         let code = request.query.personalCode;
+        let user = request.query.username;                                 //调用接口的用户信息
+        if (!user) {
+            user = 'unknown';
+        }
+        let surStatus = request.query.surStatus;                           //公司续存状态
+        if (!surStatus) surStatus = 0;                                     //默认surStatus为0 
         try {
             let res = null;
             if (code.indexOf('P') < 0) {
@@ -812,13 +818,13 @@ let apiHandlers = {
             }
             else if (code.indexOf('P') >= 0) {
                 let now = Date.now();
-                console.log('queryExecutiveInvestPath  code: ' + code);
-                logger.info('queryExecutiveInvestPath  code: ' + code);
-                searchGraph.queryExecutiveInvestPath(code)
+                console.log(`user: ${user}`+ ', queryExecutiveInvestPath  code: ' + code);
+                logger.info(`user: ${user}`+ ', queryExecutiveInvestPath  code: ' + code);
+                searchGraph.queryExecutiveInvestPath(code, surStatus)
                     .then(res => {
                         let totalQueryCost = Date.now() - now;
-                        logger.info("queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
-                        console.log("time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") + ", queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                        logger.info(`user: ${user}`+", queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
+                        console.log("time: " + moment(Date.now()).format("YYYY-MM-DD HH:mm:ss") +`user: ${user}`+ ", queryExecutiveInvestPath_totalQueryCost: " + totalQueryCost + 'ms');
 
                         if (!res) {
                             return reply.response({ code: code, results: "no results!" });

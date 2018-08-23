@@ -1,13 +1,14 @@
 #默认服务器
 neo4jServer:
   url:
-    bolt://10.10.15.129:7687
-    #bolt://10.10.15.27:7687
+    #bolt://10.10.13.9:7687
+    bolt://10.10.15.27:7687
   user:
     neo4j
   password:
+    #ywbz89
     123456
-    #ywbz10
+    
 
 #company和relationShip数据来源
 mssql:
